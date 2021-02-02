@@ -21,7 +21,6 @@ use rosu_pp::{
 
 use std::convert::identity;
 
-pub(crate) const BASE_WIDTH: f32 = 512.0;
 const SECTION_LENGTH: f32 = 750.0;
 const STAR_SCALING_FACTOR: f32 = 0.145;
 
@@ -181,7 +180,7 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     // Hyper dash business
     let base_size = calculate_catch_width(attributes.cs) * 0.5;
     let half_catcher_width = base_size * 0.8;
-    let catcher_size = base_size / BASE_WIDTH;
+    let catcher_size = base_size;
 
     let mut last_direction = 0;
     let mut last_excess = catcher_size;

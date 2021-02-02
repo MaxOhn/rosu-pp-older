@@ -1,4 +1,4 @@
-use super::{DifficultyObject, BASE_WIDTH};
+use super::DifficultyObject;
 
 use std::cmp::Ordering;
 
@@ -95,7 +95,7 @@ impl Movement {
 
                 dist_addition += DIRECTION_CHANGE_BONUS / sqrt_strain * bonus_factor;
 
-                if current.last.hyper_dist <= 10.0 / BASE_WIDTH {
+                if current.last.hyper_dist <= 10.0 {
                     bonus = 0.3 * bonus_factor;
                 }
             }
@@ -105,14 +105,14 @@ impl Movement {
                 / sqrt_strain;
         }
 
-        if current.last.hyper_dist <= 10.0 / BASE_WIDTH {
+        if current.last.hyper_dist <= 10.0 {
             if current.last.hyper_dash {
                 pos = current.normalized_pos;
             } else {
                 bonus += 1.0;
             }
 
-            dist_addition *= 1.0 + bonus * ((10.0 - current.last.hyper_dist * BASE_WIDTH) / 10.0);
+            dist_addition *= 1.0 + bonus * ((10.0 - current.last.hyper_dist) / 10.0);
         }
 
         self.last_player_position.replace(pos);
