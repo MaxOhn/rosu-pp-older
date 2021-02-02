@@ -366,7 +366,7 @@ mod tests {
     use std::fs::File;
 
     #[test]
-    // #[ignore]
+    #[ignore]
     fn fruits_ppv1_single() {
         let file = match File::open("E:/Games/osu!/beatmaps/1632808.osu") {
             Ok(file) => file,

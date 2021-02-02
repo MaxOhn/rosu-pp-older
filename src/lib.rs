@@ -5,3 +5,5 @@ pub mod osu_2019;
 pub mod mania_ppv1;
 
 pub mod fruits_ppv1;
+
+pub mod taiko_ppv1;
