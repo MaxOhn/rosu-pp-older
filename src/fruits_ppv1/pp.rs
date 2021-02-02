@@ -264,8 +264,8 @@ impl<'m> FruitsPP<'m> {
 
         // Longer maps are worth more
         let len_bonus = 0.95
-            + 0.3 * (combo_hits as f32 / 2500.0).min(1.0)
-            + (combo_hits > 2500) as u8 as f32 * (combo_hits as f32 / 2500.0).log10() * 0.475;
+            + 0.4 * (combo_hits as f32 / 3000.0).min(1.0)
+            + (combo_hits > 3000) as u8 as f32 * (combo_hits as f32 / 3000.0).log10() * 0.5;
         pp *= len_bonus;
 
         // Penalize misses exponentially
@@ -282,7 +282,7 @@ impl<'m> FruitsPP<'m> {
         let ar = attributes.ar;
         let mut ar_factor = 1.0;
         if ar > 9.0 {
-            ar_factor += 0.1 * (ar - 9.0) + (ar > 10.0) as u8 as f32 * 0.1 * (ar - 10.0);
+            ar_factor += 0.1 * (ar - 9.0);
         } else if ar < 8.0 {
             ar_factor += 0.025 * (8.0 - ar);
         }
@@ -290,11 +290,7 @@ impl<'m> FruitsPP<'m> {
 
         // HD bonus
         if self.mods.hd() {
-            if ar <= 10.0 {
-                pp *= 1.05 + 0.075 * (10.0 - ar);
-            } else if ar > 10.0 {
-                pp *= 1.01 + 0.04 * (11.0 - ar.min(11.0));
-            }
+            pp *= 1.05 + 0.075 * (10.0 - ar.min(10.0));
         }
 
         // FL bonus

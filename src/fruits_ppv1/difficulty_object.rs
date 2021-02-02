@@ -12,7 +12,6 @@ pub(crate) struct DifficultyObject<'o> {
     pub(crate) last_normalized_pos: f32,
 
     pub(crate) strain_time: f32,
-    pub(crate) clock_rate: f32,
 }
 
 impl<'o> DifficultyObject<'o> {
@@ -24,9 +23,10 @@ impl<'o> DifficultyObject<'o> {
         clock_rate: f32,
     ) -> Self {
         let delta = (base.time - last.time) / clock_rate;
-        let strain_time = delta.max(40.0);
+        let strain_time = delta.max(25.0);
 
         let scaling_factor = NORMALIZED_HITOBJECT_RADIUS / half_catcher_width;
+
         let normalized_pos = base.pos * scaling_factor;
         let last_normalized_pos = last.pos * scaling_factor;
 
@@ -37,7 +37,6 @@ impl<'o> DifficultyObject<'o> {
             normalized_pos,
             last_normalized_pos,
             strain_time,
-            clock_rate,
         }
     }
 }

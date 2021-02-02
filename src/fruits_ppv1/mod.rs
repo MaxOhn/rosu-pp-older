@@ -21,10 +21,10 @@ use rosu_pp::{
 
 use std::convert::identity;
 
+pub(crate) const BASE_WIDTH: f32 = 512.0;
 const SECTION_LENGTH: f32 = 750.0;
-const STAR_SCALING_FACTOR: f32 = 0.153;
+const STAR_SCALING_FACTOR: f32 = 0.145;
 
-const ALLOWED_CATCH_RANGE: f32 = 0.8;
 const CATCHER_SIZE: f32 = 106.75;
 
 const LEGACY_LAST_TICK_OFFSET: f32 = 36.0;
@@ -179,12 +179,15 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
         .flatten();
 
     // Hyper dash business
-    let half_catcher_width = calculate_catch_width(attributes.cs) / 2.0 / ALLOWED_CATCH_RANGE;
+    let base_size = calculate_catch_width(attributes.cs) * 0.5;
+    let half_catcher_width = base_size * 0.8;
+    let catcher_size = base_size / BASE_WIDTH;
+
     let mut last_direction = 0;
-    let mut last_excess = half_catcher_width;
+    let mut last_excess = catcher_size;
 
     // Strain business
-    let mut movement = Movement::new(attributes.cs);
+    let mut movement = Movement::new();
     let section_len = SECTION_LENGTH * attributes.clock_rate;
     let mut current_section_end =
         (map.hit_objects[0].start_time / section_len).ceil() * section_len;
@@ -192,28 +195,13 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     let mut prev = hit_objects.next().unwrap();
     let mut curr = hit_objects.next().unwrap();
 
-    prev.init_hyper_dash(
-        half_catcher_width,
-        &curr,
-        &mut last_direction,
-        &mut last_excess,
-    );
+    prev.init_hyper_dash(catcher_size, &curr, &mut last_direction, &mut last_excess);
 
     // Handle second object separately to remove later if-branching
     let next = hit_objects.next().unwrap();
-    curr.init_hyper_dash(
-        half_catcher_width,
-        &next,
-        &mut last_direction,
-        &mut last_excess,
-    );
+    curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-    let h = DifficultyObject::new(
-        &curr,
-        &prev,
-        movement.half_catcher_width,
-        attributes.clock_rate,
-    );
+    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
 
     while h.base.time > current_section_end {
         current_section_end += section_len;
@@ -226,19 +214,9 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     // Handle all other objects
     for next in hit_objects {
-        curr.init_hyper_dash(
-            half_catcher_width,
-            &next,
-            &mut last_direction,
-            &mut last_excess,
-        );
+        curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-        let h = DifficultyObject::new(
-            &curr,
-            &prev,
-            movement.half_catcher_width,
-            attributes.clock_rate,
-        );
+        let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
 
         while h.base.time > current_section_end {
             movement.save_current_peak();
@@ -253,12 +231,7 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     }
 
     // Same as in loop but without init_hyper_dash because `curr` is the last element
-    let h = DifficultyObject::new(
-        &curr,
-        &prev,
-        movement.half_catcher_width,
-        attributes.clock_rate,
-    );
+    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
 
     while h.base.time > current_section_end {
         movement.save_current_peak();
@@ -358,10 +331,8 @@ fn count_iterations(mut start: f32, step: f32, end: f32) -> usize {
 }
 
 #[inline]
-pub(crate) fn calculate_catch_width(cs: f32) -> f32 {
-    let scale = 1.0 - 0.7 * (cs - 5.0) / 5.0;
-
-    CATCHER_SIZE * scale.abs() * ALLOWED_CATCH_RANGE
+fn calculate_catch_width(cs: f32) -> f32 {
+    CATCHER_SIZE * (1.0 - 0.7 * (cs - 5.0) / 5.0).abs()
 }
 
 enum FruitOrJuice<I> {
@@ -396,9 +367,9 @@ mod tests {
     use std::fs::File;
 
     #[test]
-    #[ignore]
-    fn fruits_single() {
-        let file = match File::open("./maps/1587421.osu") {
+    // #[ignore]
+    fn fruits_ppv1_single() {
+        let file = match File::open("E:/Games/osu!/beatmaps/1632808.osu") {
             Ok(file) => file,
             Err(why) => panic!("Could not open file: {}", why),
         };
@@ -410,11 +381,11 @@ mod tests {
 
         let result = FruitsPP::new(&map)
             .mods(0)
-            .combo(266)
-            .fruits(644)
-            .droplets(33)
-            .tiny_droplet_misses(12)
-            .misses(10)
+            // .combo(266)
+            // .fruits(644)
+            // .droplets(33)
+            // .tiny_droplet_misses(12)
+            // .misses(10)
             .calculate();
 
         println!("Stars: {}", result.stars());
