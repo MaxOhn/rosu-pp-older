@@ -1,4 +1,4 @@
-use rosu_pp::Pos2;
+use rosu_pp::parse::Pos2;
 
 const PLAYFIELD_WIDTH: f32 = 512.0;
 const BASE_SPEED: f32 = 1.0;

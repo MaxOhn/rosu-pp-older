@@ -1,4 +1,4 @@
-use rosu_pp::{HitObject, HitSound};
+use rosu_pp::parse::{HitObject, HitSound};
 
 pub(crate) trait Rim {
     fn is_rim(&self) -> bool;

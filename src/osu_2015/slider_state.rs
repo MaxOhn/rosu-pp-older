@@ -46,7 +46,10 @@ impl<'p> SliderState<'p> {
 
 #[cfg(test)]
 mod test {
-    use rosu_pp::{Beatmap, DifficultyPoint, TimingPoint};
+    use rosu_pp::{
+        parse::{DifficultyPoint, TimingPoint},
+        Beatmap,
+    };
 
     use super::SliderState;
 

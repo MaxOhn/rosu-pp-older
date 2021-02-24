@@ -68,28 +68,3 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     StarResult::Taiko(DifficultyAttributes { stars })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs::File;
-
-    #[test]
-    #[ignore]
-    fn taiko_ppv1_single() {
-        let file = match File::open("E:/Games/osu!/beatmaps/168450.osu") {
-            Ok(file) => file,
-            Err(why) => panic!("Could not open file: {}", why),
-        };
-
-        let map = match Beatmap::parse(file) {
-            Ok(map) => map,
-            Err(why) => panic!("Error while parsing map: {}", why),
-        };
-
-        let result = TaikoPP::new(&map).mods(0).calculate();
-
-        println!("Stars: {}", result.stars());
-        println!("PP: {}", result.pp());
-    }
-}

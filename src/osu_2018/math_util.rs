@@ -1,4 +1,4 @@
-use rosu_pp::Pos2;
+use rosu_pp::parse::Pos2;
 
 #[inline]
 pub(crate) fn cpn(mut p: i32, n: i32) -> f32 {

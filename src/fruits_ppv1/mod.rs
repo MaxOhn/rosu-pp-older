@@ -16,7 +16,9 @@ pub use pp::*;
 use slider_state::SliderState;
 
 use rosu_pp::{
-    fruits::DifficultyAttributes, Beatmap, HitObjectKind, Mods, PathType, Pos2, StarResult,
+    fruits::DifficultyAttributes,
+    parse::{HitObjectKind, PathType, Pos2},
+    Beatmap, Mods, StarResult,
 };
 
 use std::convert::identity;
@@ -357,37 +359,5 @@ impl<I: Iterator<Item = CatchObject>> Iterator for FruitOrJuice<I> {
             Self::Fruit(None) => (0, Some(0)),
             Self::Juice(slider) => slider.size_hint(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs::File;
-
-    #[test]
-    #[ignore]
-    fn fruits_ppv1_single() {
-        let file = match File::open("E:/Games/osu!/beatmaps/1632808.osu") {
-            Ok(file) => file,
-            Err(why) => panic!("Could not open file: {}", why),
-        };
-
-        let map = match Beatmap::parse(file) {
-            Ok(map) => map,
-            Err(why) => panic!("Error while parsing map: {}", why),
-        };
-
-        let result = FruitsPP::new(&map)
-            .mods(0)
-            // .combo(266)
-            // .fruits(644)
-            // .droplets(33)
-            // .tiny_droplet_misses(12)
-            // .misses(10)
-            .calculate();
-
-        println!("Stars: {}", result.stars());
-        println!("PP: {}", result.pp());
     }
 }

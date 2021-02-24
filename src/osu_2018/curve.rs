@@ -1,6 +1,6 @@
 use super::math_util;
 
-use rosu_pp::Pos2;
+use rosu_pp::parse::Pos2;
 
 const SLIDER_QUALITY: f32 = 50.0;
 

@@ -1,4 +1,7 @@
-use rosu_pp::{Beatmap, DifficultyPoint, TimingPoint};
+use rosu_pp::{
+    parse::{DifficultyPoint, TimingPoint},
+    Beatmap,
+};
 use std::slice::Iter;
 
 macro_rules! next_tuple {
@@ -83,7 +86,10 @@ impl<'p> Iterator for ControlPointIter<'p> {
 #[cfg(test)]
 mod test {
     use super::super::{ControlPoint, ControlPointIter};
-    use rosu_pp::{Beatmap, DifficultyPoint, TimingPoint};
+    use rosu_pp::{
+        parse::{DifficultyPoint, TimingPoint},
+        Beatmap,
+    };
 
     #[test]
     fn control_point_iter() {

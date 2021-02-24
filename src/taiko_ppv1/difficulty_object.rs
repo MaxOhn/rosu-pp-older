@@ -1,6 +1,6 @@
 use super::rim::Rim;
 
-use rosu_pp::HitObject;
+use rosu_pp::parse::HitObject;
 
 #[derive(Clone, Debug)]
 pub(crate) struct DifficultyObject<'o> {

@@ -1,6 +1,10 @@
 use super::{Curve, SliderState};
 
-use rosu_pp::{osu::DifficultyAttributes, Beatmap, HitObject, HitObjectKind, PathType, Pos2};
+use rosu_pp::{
+    osu::DifficultyAttributes,
+    parse::{HitObject, HitObjectKind, PathType, Pos2},
+    Beatmap,
+};
 
 const LEGACY_LAST_TICK_OFFSET: f32 = 36.0;
 

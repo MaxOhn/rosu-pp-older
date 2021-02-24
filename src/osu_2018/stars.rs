@@ -111,35 +111,3 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     StarResult::Osu(diff_attributes)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::super::OsuPP;
-    use rosu_pp::Beatmap;
-    use std::fs::File;
-
-    #[test]
-    #[ignore]
-    fn single_2018() {
-        let file = match File::open("E:/Games/osu!/beatmaps/786018.osu") {
-            Ok(file) => file,
-            Err(why) => panic!("Could not open file: {}", why),
-        };
-
-        let map = match Beatmap::parse(file) {
-            Ok(map) => map,
-            Err(why) => panic!("Error while parsing map: {}", why),
-        };
-
-        let result = OsuPP::new(&map)
-            .n300(906)
-            .n100(8)
-            .n50(0)
-            .combo(1217)
-            .mods(8 + 16)
-            .calculate();
-
-        println!("Stars: {}", result.stars());
-        println!("PP: {}", result.pp());
-    }
-}

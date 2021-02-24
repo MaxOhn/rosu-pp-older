@@ -4,7 +4,7 @@ mod strain;
 pub use pp::*;
 use strain::Strain;
 
-use rosu_pp::{mania::DifficultyAttributes, Beatmap, GameMode, HitObject, Mods, StarResult};
+use rosu_pp::{mania::DifficultyAttributes, parse::HitObject, Beatmap, GameMode, Mods, StarResult};
 
 const SECTION_LEN: f32 = 400.0;
 const STAR_SCALING_FACTOR: f32 = 0.018;
@@ -104,34 +104,5 @@ impl<'o> DifficultyHitObject<'o> {
             column,
             delta: (base.start_time - prev.start_time) / clock_rate,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs::File;
-
-    #[test]
-    #[ignore]
-    fn mania_ppv1_single() {
-        let file = match File::open("E:/Games/osu!/beatmaps/975667.osu") {
-            Ok(file) => file,
-            Err(why) => panic!("Could not open file: {}", why),
-        };
-
-        let map = match Beatmap::parse(file) {
-            Ok(map) => map,
-            Err(why) => panic!("Error while parsing map: {}", why),
-        };
-
-        let result = ManiaPP::new(&map)
-            .mods(64)
-            .score(893_277)
-            .accuracy(96.98)
-            .calculate();
-
-        println!("Stars: {}", result.stars());
-        println!("PP: {}", result.pp());
     }
 }

@@ -47,7 +47,10 @@ impl<'p> SliderState<'p> {
 #[cfg(test)]
 mod test {
     use super::SliderState;
-    use rosu_pp::{Beatmap, DifficultyPoint, TimingPoint};
+    use rosu_pp::{
+        parse::{DifficultyPoint, TimingPoint},
+        Beatmap,
+    };
 
     #[test]
     fn fruits_slider_state() {
