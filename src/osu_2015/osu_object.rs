@@ -2,7 +2,7 @@ use super::{Curve, SliderState};
 
 use rosu_pp::{
     osu::DifficultyAttributes,
-    parse::{HitObject, HitObjectKind, PathType, Pos2},
+    parse::{HitObject, HitObjectKind, Pos2},
     Beatmap,
 };
 
@@ -65,24 +65,8 @@ impl OsuObject {
                     / 100.0;
                 let span_duration = duration / *repeats as f32;
 
-                // Ensure path type validity
-                let path_type = if (*path_type == PathType::PerfectCurve && curve_points.len() > 3)
-                    || (*path_type == PathType::Linear && curve_points.len() != 2)
-                {
-                    PathType::Bezier
-                } else if curve_points.len() == 2 {
-                    PathType::Linear
-                } else {
-                    *path_type
-                };
-
                 // Build the curve w.r.t. the curve points
-                let curve = match path_type {
-                    PathType::Linear => Curve::linear(curve_points[0], curve_points[1]),
-                    PathType::Bezier => Curve::bezier(&curve_points),
-                    PathType::Catmull => Curve::catmull(&curve_points),
-                    PathType::PerfectCurve => Curve::perfect(&curve_points),
-                };
+                let curve = Curve::new(curve_points, *path_type);
 
                 // Called on each slider object except for the head.
                 // Increases combo and adjusts `end_pos` and `travel_dist`
