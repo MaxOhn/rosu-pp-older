@@ -2,9 +2,12 @@
 //! This means the jump distance inbetween notes might be slightly off, resulting in small inaccuracies.
 //! Since calculating these offsets is relatively expensive though, this version is faster than `all_included`.
 
-use super::{difficulty_range_od, DifficultyObject, OsuObject, Skill, SkillKind, SliderState};
+use super::{
+    curve::CurveBuffers, difficulty_range_od, DifficultyObject, OsuObject, Skill, SkillKind,
+    SliderState,
+};
 
-use rosu_pp::{osu::DifficultyAttributes, Beatmap, Mods, StarResult};
+use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap, Mods};
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -20,25 +23,30 @@ const NORMALIZED_RADIUS: f32 = 52.0;
 /// processing stack leniency is relatively expensive.
 ///
 /// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> StarResult {
+pub fn stars(
+    map: &Beatmap,
+    mods: impl Mods,
+    passed_objects: Option<usize>,
+) -> OsuDifficultyAttributes {
     let take = passed_objects.unwrap_or_else(|| map.hit_objects.len());
 
     let map_attributes = map.attributes().mods(mods);
-    let hitwindow = difficulty_range_od(map_attributes.od).floor() / map_attributes.clock_rate;
+    let hitwindow =
+        difficulty_range_od(map_attributes.od as f32).floor() / map_attributes.clock_rate as f32;
     let od = (80.0 - hitwindow) / 6.0;
 
-    let mut diff_attributes = DifficultyAttributes {
+    let mut diff_attributes = OsuDifficultyAttributes {
         ar: map_attributes.ar,
-        od,
+        od: od as f64,
         ..Default::default()
     };
 
     if take < 2 {
-        return StarResult::Osu(diff_attributes);
+        return diff_attributes;
     }
 
-    let section_len = SECTION_LEN * map_attributes.clock_rate;
-    let radius = OBJECT_RADIUS * (1.0 - 0.7 * (map_attributes.cs - 5.0) / 5.0) / 2.0;
+    let section_len = SECTION_LEN * map_attributes.clock_rate as f32;
+    let radius = OBJECT_RADIUS * (1.0 - 0.7 * (map_attributes.cs as f32 - 5.0) / 5.0) / 2.0;
     let mut scaling_factor = NORMALIZED_RADIUS / radius;
 
     if radius < 30.0 {
@@ -48,6 +56,7 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     let mut slider_state = SliderState::new(map);
     let mut ticks_buf = Vec::new();
+    let mut curve_bufs = CurveBuffers::default();
 
     let mut hit_objects = map.hit_objects.iter().take(take).filter_map(|h| {
         OsuObject::new(
@@ -58,6 +67,7 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
             &mut ticks_buf,
             &mut diff_attributes,
             &mut slider_state,
+            &mut curve_bufs,
         )
     });
 
@@ -66,15 +76,20 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     // First object has no predecessor and thus no strain, handle distinctly
     let mut current_section_end =
-        (map.hit_objects[0].start_time / section_len).ceil() * section_len;
+        (map.hit_objects[0].start_time as f32 / section_len).ceil() * section_len;
 
     let mut prev = hit_objects.next().unwrap();
 
     // Handle second object separately to remove later if-branching
     let curr = hit_objects.next().unwrap();
-    let h = DifficultyObject::new(&curr, &prev, map_attributes.clock_rate, scaling_factor);
+    let h = DifficultyObject::new(
+        &curr,
+        &prev,
+        map_attributes.clock_rate as f32,
+        scaling_factor,
+    );
 
-    while h.base.time > current_section_end {
+    while h.base.time as f32 > current_section_end {
         current_section_end += section_len;
     }
 
@@ -85,9 +100,14 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     // Handle all other objects
     for curr in hit_objects {
-        let h = DifficultyObject::new(&curr, &prev, map_attributes.clock_rate, scaling_factor);
+        let h = DifficultyObject::new(
+            &curr,
+            &prev,
+            map_attributes.clock_rate as f32,
+            scaling_factor,
+        );
 
-        while h.base.time > current_section_end {
+        while h.base.time as f32 > current_section_end {
             aim.save_current_peak();
             aim.start_new_section_from(current_section_end);
             speed.save_current_peak();
@@ -110,9 +130,9 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     let stars = aim_strain + speed_strain + (aim_strain - speed_strain).abs() / 2.0;
 
-    diff_attributes.stars = stars;
-    diff_attributes.speed_strain = speed_strain;
-    diff_attributes.aim_strain = aim_strain;
+    diff_attributes.stars = stars as f64;
+    diff_attributes.speed_strain = speed_strain as f64;
+    diff_attributes.aim_strain = aim_strain as f64;
 
-    StarResult::Osu(diff_attributes)
+    diff_attributes
 }

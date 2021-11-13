@@ -1,6 +1,9 @@
-use super::{stars, DifficultyAttributes};
+use super::stars;
 
-use rosu_pp::{Beatmap, Mods, PpResult, StarResult};
+use rosu_pp::{
+    fruits::{FruitsDifficultyAttributes, FruitsPerformanceAttributes},
+    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
+};
 
 /// Calculator for pp on osu!ctb maps.
 ///
@@ -32,7 +35,7 @@ use rosu_pp::{Beatmap, Mods, PpResult, StarResult};
 #[derive(Clone, Debug)]
 pub struct FruitsPP<'m> {
     map: &'m Beatmap,
-    attributes: Option<DifficultyAttributes>,
+    attributes: Option<FruitsDifficultyAttributes>,
     mods: u32,
     combo: Option<usize>,
 
@@ -147,11 +150,8 @@ impl<'m> FruitsPP<'m> {
     /// Be sure to set `misses` beforehand! Also, if available, set `attributes` beforehand.
     pub fn accuracy(mut self, mut acc: f32) -> Self {
         if self.attributes.is_none() {
-            self.attributes.replace(
-                stars(self.map, self.mods, self.passed_objects)
-                    .attributes()
-                    .unwrap(),
-            );
+            self.attributes
+                .replace(stars(self.map, self.mods, self.passed_objects));
         }
 
         let attributes = self.attributes.as_ref().unwrap();
@@ -186,7 +186,7 @@ impl<'m> FruitsPP<'m> {
         self
     }
 
-    fn assert_hitresults(&mut self, attributes: &DifficultyAttributes) {
+    fn assert_hitresults(&mut self, attributes: &FruitsDifficultyAttributes) {
         let correct_combo_hits = self
             .n_fruits
             .and_then(|f| self.n_droplets.map(|d| f + d + self.n_misses))
@@ -241,12 +241,11 @@ impl<'m> FruitsPP<'m> {
 
     /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::fruits::DifficultyAttributes)
     /// containing stars and other attributes.
-    pub fn calculate(mut self) -> PpResult {
-        let attributes = self.attributes.take().unwrap_or_else(|| {
-            stars(self.map, self.mods, self.passed_objects)
-                .attributes()
-                .unwrap()
-        });
+    pub fn calculate(mut self) -> FruitsPerformanceAttributes {
+        let attributes = self
+            .attributes
+            .take()
+            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects));
 
         // Make sure all objects are set
         self.assert_hitresults(&attributes);
@@ -254,7 +253,7 @@ impl<'m> FruitsPP<'m> {
         let stars = attributes.stars;
 
         // Relying heavily on aim
-        let mut pp = (5.0 * (stars / 0.0049).max(1.0) - 4.0).powi(2) / 100_000.0;
+        let mut pp = (5.0 * (stars as f32 / 0.0049).max(1.0) - 4.0).powi(2) / 100_000.0;
 
         let mut combo_hits = self.combo_hits();
 
@@ -286,11 +285,11 @@ impl<'m> FruitsPP<'m> {
         } else if ar < 8.0 {
             ar_factor += 0.025 * (8.0 - ar);
         }
-        pp *= ar_factor;
+        pp *= ar_factor as f32;
 
         // HD bonus
         if self.mods.hd() {
-            pp *= 1.05 + 0.075 * (10.0 - ar.min(10.0));
+            pp *= 1.05 + 0.075 * (10.0 - ar.min(10.0) as f32);
         }
 
         // FL bonus
@@ -306,9 +305,9 @@ impl<'m> FruitsPP<'m> {
             pp *= 0.9;
         }
 
-        PpResult {
-            pp,
-            attributes: StarResult::Fruits(attributes),
+        FruitsPerformanceAttributes {
+            attributes,
+            pp: pp as f64,
         }
     }
 
@@ -344,19 +343,19 @@ impl<'m> FruitsPP<'m> {
 }
 
 pub trait FruitsAttributeProvider {
-    fn attributes(self) -> Option<DifficultyAttributes>;
+    fn attributes(self) -> Option<FruitsDifficultyAttributes>;
 }
 
-impl FruitsAttributeProvider for DifficultyAttributes {
+impl FruitsAttributeProvider for FruitsDifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
+    fn attributes(self) -> Option<FruitsDifficultyAttributes> {
         Some(self)
     }
 }
 
-impl FruitsAttributeProvider for StarResult {
+impl FruitsAttributeProvider for DifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
+    fn attributes(self) -> Option<FruitsDifficultyAttributes> {
         #[allow(irrefutable_let_patterns)]
         if let Self::Fruits(attributes) = self {
             Some(attributes)
@@ -366,144 +365,9 @@ impl FruitsAttributeProvider for StarResult {
     }
 }
 
-impl FruitsAttributeProvider for PpResult {
+impl FruitsAttributeProvider for PerformanceAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
-        self.attributes.attributes()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use rosu_pp::Beatmap;
-
-    fn attributes() -> DifficultyAttributes {
-        DifficultyAttributes {
-            n_fruits: 1234,
-            n_droplets: 567,
-            n_tiny_droplets: 2345,
-            max_combo: 1234 + 567,
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn fruits_only_accuracy() {
-        let map = Beatmap::default();
-        let attributes = attributes();
-
-        let total_objects = attributes.n_fruits + attributes.n_droplets;
-        let target_acc = 97.5;
-
-        let calculator = FruitsPP::new(&map)
-            .attributes(attributes)
-            .passed_objects(total_objects)
-            .accuracy(target_acc);
-
-        let numerator = calculator.n_fruits.unwrap_or(0)
-            + calculator.n_droplets.unwrap_or(0)
-            + calculator.n_tiny_droplets.unwrap_or(0);
-        let denominator =
-            numerator + calculator.n_tiny_droplet_misses.unwrap_or(0) + calculator.n_misses;
-        let acc = 100.0 * numerator as f32 / denominator as f32;
-
-        assert!(
-            (target_acc - acc).abs() < 1.0,
-            "Expected: {} | Actual: {}",
-            target_acc,
-            acc
-        );
-    }
-
-    #[test]
-    fn fruits_accuracy_droplets_and_tiny_droplets() {
-        let map = Beatmap::default();
-        let attributes = attributes();
-
-        let total_objects = attributes.n_fruits + attributes.n_droplets;
-        let target_acc = 97.5;
-        let n_droplets = 550;
-        let n_tiny_droplets = 2222;
-
-        let calculator = FruitsPP::new(&map)
-            .attributes(attributes)
-            .passed_objects(total_objects)
-            .droplets(n_droplets)
-            .tiny_droplets(n_tiny_droplets)
-            .accuracy(target_acc);
-
-        assert_eq!(
-            n_droplets,
-            calculator.n_droplets.unwrap(),
-            "Expected: {} | Actual: {}",
-            n_droplets,
-            calculator.n_droplets.unwrap()
-        );
-
-        let numerator = calculator.n_fruits.unwrap_or(0)
-            + calculator.n_droplets.unwrap_or(0)
-            + calculator.n_tiny_droplets.unwrap_or(0);
-        let denominator =
-            numerator + calculator.n_tiny_droplet_misses.unwrap_or(0) + calculator.n_misses;
-        let acc = 100.0 * numerator as f32 / denominator as f32;
-
-        assert!(
-            (target_acc - acc).abs() < 1.0,
-            "Expected: {} | Actual: {}",
-            target_acc,
-            acc
-        );
-    }
-
-    #[test]
-    fn fruits_missing_objects() {
-        let map = Beatmap::default();
-        let attributes = attributes();
-
-        let total_objects = attributes.n_fruits + attributes.n_droplets;
-        let n_fruits = attributes.n_fruits - 10;
-        let n_droplets = attributes.n_droplets - 5;
-        let n_tiny_droplets = attributes.n_tiny_droplets - 50;
-        let n_tiny_droplet_misses = 20;
-        let n_misses = 2;
-
-        let mut calculator = FruitsPP::new(&map)
-            .attributes(attributes.clone())
-            .passed_objects(total_objects)
-            .fruits(n_fruits)
-            .droplets(n_droplets)
-            .tiny_droplets(n_tiny_droplets)
-            .tiny_droplet_misses(n_tiny_droplet_misses)
-            .misses(n_misses);
-
-        calculator.assert_hitresults(&attributes);
-
-        assert!(
-            (attributes.n_fruits as i32 - calculator.n_fruits.unwrap() as i32).abs()
-                <= n_misses as i32,
-            "Expected: {} | Actual: {} [+/- {} misses]",
-            attributes.n_fruits,
-            calculator.n_fruits.unwrap(),
-            n_misses
-        );
-
-        assert_eq!(
-            attributes.n_droplets,
-            calculator.n_droplets.unwrap()
-                - (n_misses - (attributes.n_fruits - calculator.n_fruits.unwrap())),
-            "Expected: {} | Actual: {}",
-            attributes.n_droplets,
-            calculator.n_droplets.unwrap()
-                - (n_misses - (attributes.n_fruits - calculator.n_fruits.unwrap())),
-        );
-
-        assert_eq!(
-            attributes.n_tiny_droplets,
-            calculator.n_tiny_droplets.unwrap() + calculator.n_tiny_droplet_misses.unwrap(),
-            "Expected: {} | Actual: {}",
-            attributes.n_tiny_droplets,
-            calculator.n_tiny_droplets.unwrap() + calculator.n_tiny_droplet_misses.unwrap(),
-        );
+    fn attributes(self) -> Option<FruitsDifficultyAttributes> {
+        self.difficulty_attributes().attributes()
     }
 }

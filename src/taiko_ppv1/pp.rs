@@ -1,6 +1,9 @@
-use super::{stars, DifficultyAttributes};
+use super::stars;
 
-use rosu_pp::{Beatmap, Mods, PpResult, StarResult};
+use rosu_pp::{
+    taiko::{TaikoDifficultyAttributes, TaikoPerformanceAttributes},
+    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
+};
 
 /// Calculator for pp on osu!taiko maps.
 ///
@@ -136,10 +139,10 @@ impl<'m> TaikoPP<'m> {
     }
 
     /// Returns an object which contains the pp and stars.
-    pub fn calculate(mut self) -> PpResult {
+    pub fn calculate(mut self) -> TaikoPerformanceAttributes {
         let stars = self
             .stars
-            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects).stars());
+            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects).stars as f32);
 
         if self.n300.or(self.n100).is_some() {
             let total = self.map.n_circles as usize;
@@ -176,9 +179,13 @@ impl<'m> TaikoPP<'m> {
 
         let pp = (strain_value.powf(1.1) + acc_value.powf(1.1)).powf(1.0 / 1.1) * multiplier;
 
-        PpResult {
-            pp,
-            attributes: StarResult::Taiko(DifficultyAttributes { stars }),
+        TaikoPerformanceAttributes {
+            attributes: TaikoDifficultyAttributes {
+                stars: stars as f64,
+            },
+            pp: pp as f64,
+            pp_acc: acc_value as f64,
+            pp_strain: strain_value as f64,
         }
     }
 
@@ -222,7 +229,7 @@ impl<'m> TaikoPP<'m> {
             od *= 0.5;
         }
 
-        let hit_window = difficulty_range_od(od) / self.mods.speed();
+        let hit_window = difficulty_range_od(od) / self.mods.speed() as f32;
 
         (150.0 / hit_window).powf(1.1)
             * self.acc.powi(15)
@@ -262,28 +269,28 @@ impl TaikoAttributeProvider for f32 {
     }
 }
 
-impl TaikoAttributeProvider for DifficultyAttributes {
+impl TaikoAttributeProvider for TaikoDifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
-        Some(self.stars)
+        Some(self.stars as f32)
     }
 }
 
-impl TaikoAttributeProvider for StarResult {
+impl TaikoAttributeProvider for DifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
         #[allow(irrefutable_let_patterns)]
-        if let StarResult::Taiko(attributes) = self {
-            Some(attributes.stars)
+        if let Self::Taiko(attributes) = self {
+            Some(attributes.stars as f32)
         } else {
             None
         }
     }
 }
 
-impl TaikoAttributeProvider for PpResult {
+impl TaikoAttributeProvider for PerformanceAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
-        self.attributes.attributes()
+        self.difficulty_attributes().attributes()
     }
 }

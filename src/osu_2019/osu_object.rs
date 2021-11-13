@@ -1,7 +1,7 @@
-use super::{Curve, SliderState};
+use super::{curve::CurveBuffers, Curve, SliderState};
 
 use rosu_pp::{
-    osu::DifficultyAttributes,
+    osu::OsuDifficultyAttributes,
     parse::{HitObject, HitObjectKind, Pos2},
     Beatmap,
 };
@@ -23,8 +23,9 @@ impl OsuObject {
         radius: f32,
         scaling_factor: f32,
         ticks: &mut Vec<f32>,
-        attributes: &mut DifficultyAttributes,
+        attributes: &mut OsuDifficultyAttributes,
         slider_state: &mut SliderState,
+        curve_bufs: &mut CurveBuffers,
     ) -> Option<Self> {
         attributes.max_combo += 1; // hitcircle, slider head, or spinner
 
@@ -33,7 +34,7 @@ impl OsuObject {
                 attributes.n_circles += 1;
 
                 Self {
-                    time: h.start_time,
+                    time: h.start_time as f32,
                     pos: h.pos,
                     end_pos: h.pos,
                     travel_dist: Some(0.0),
@@ -42,18 +43,19 @@ impl OsuObject {
             HitObjectKind::Slider {
                 pixel_len,
                 repeats,
-                curve_points,
-                path_type,
+                control_points,
             } => {
+                let pixel_len = *pixel_len as f32;
+
                 // Key values which are computed here
                 let mut end_pos = h.pos;
                 let mut travel_dist = 0.0;
 
                 // Responsible for timing point values
-                slider_state.update(h.start_time);
+                slider_state.update(h.start_time as f32);
 
                 let approx_follow_circle_radius = radius * 3.0;
-                let mut tick_distance = 100.0 * map.sv / map.tick_rate;
+                let mut tick_distance = 100.0 * map.slider_mult as f32 / map.tick_rate as f32;
 
                 if map.version >= 8 {
                     tick_distance /=
@@ -61,12 +63,12 @@ impl OsuObject {
                 }
 
                 let duration = *repeats as f32 * slider_state.beat_len * pixel_len
-                    / (map.sv * slider_state.speed_mult)
+                    / (map.slider_mult as f32 * slider_state.speed_mult)
                     / 100.0;
                 let span_duration = duration / *repeats as f32;
 
                 // Build the curve w.r.t. the curve points
-                let curve = Curve::new(curve_points, *path_type);
+                let curve = Curve::new(control_points, pixel_len as f64, curve_bufs);
 
                 // Called on each slider object except for the head.
                 // Increases combo and adjusts `end_pos` and `travel_dist`
@@ -74,7 +76,7 @@ impl OsuObject {
                 let mut compute_vertex = |time: f32| {
                     attributes.max_combo += 1;
 
-                    let mut progress = (time - h.start_time) / span_duration;
+                    let mut progress = (time - h.start_time as f32) / span_duration;
 
                     if progress % 2.0 >= 1.0 {
                         progress = 1.0 - progress % 1.0;
@@ -82,8 +84,7 @@ impl OsuObject {
                         progress %= 1.0;
                     }
 
-                    let curr_dist = pixel_len * progress;
-                    let curr_pos = curve.point_at_distance(curr_dist);
+                    let curr_pos = curve.position_at(progress as f64);
 
                     let diff = curr_pos - end_pos;
                     let mut dist = diff.length();
@@ -104,7 +105,7 @@ impl OsuObject {
                 // Tick of the first span
                 if current_distance < target {
                     for tick_idx in 1.. {
-                        let time = h.start_time + time_add * tick_idx as f32;
+                        let time = h.start_time as f32 + time_add * tick_idx as f32;
                         compute_vertex(time);
                         ticks.push(time);
                         current_distance += tick_distance;
@@ -121,7 +122,7 @@ impl OsuObject {
                         let time_offset = (duration / *repeats as f32) * repeat_id as f32;
 
                         // Reverse tick
-                        compute_vertex(h.start_time + time_offset);
+                        compute_vertex(h.start_time as f32 + time_offset);
 
                         // Actual ticks
                         if repeat_id & 1 == 1 {
@@ -134,8 +135,9 @@ impl OsuObject {
 
                 // Slider tail
                 let final_span_idx = repeats.saturating_sub(1);
-                let final_span_start_time = h.start_time + final_span_idx as f32 * span_duration;
-                let final_span_end_time = (h.start_time + duration / 2.0)
+                let final_span_start_time =
+                    h.start_time as f32 + final_span_idx as f32 * span_duration;
+                let final_span_end_time = (h.start_time as f32 + duration / 2.0)
                     .max(final_span_start_time + span_duration - LEGACY_LAST_TICK_OFFSET);
                 compute_vertex(final_span_end_time);
 
@@ -144,7 +146,7 @@ impl OsuObject {
                 travel_dist *= scaling_factor;
 
                 Self {
-                    time: h.start_time,
+                    time: h.start_time as f32,
                     pos: h.pos,
                     end_pos,
                     travel_dist: Some(travel_dist),
@@ -154,7 +156,7 @@ impl OsuObject {
                 attributes.n_spinners += 1;
 
                 Self {
-                    time: h.start_time,
+                    time: h.start_time as f32,
                     pos: h.pos,
                     end_pos: h.pos,
                     travel_dist: None,

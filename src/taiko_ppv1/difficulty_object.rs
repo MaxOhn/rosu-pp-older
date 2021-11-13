@@ -19,7 +19,7 @@ impl<'o> DifficultyObject<'o> {
         prev: &'o HitObject,
         clock_rate: f32,
     ) -> Self {
-        let delta = (base.start_time - prev.start_time) / clock_rate;
+        let delta = (base.start_time as f32 - prev.start_time as f32) / clock_rate;
         let has_type_change = prev.is_rim() != base.is_rim();
 
         Self {

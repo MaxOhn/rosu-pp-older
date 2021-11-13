@@ -1,6 +1,9 @@
-use super::{stars, DifficultyAttributes};
+use super::stars;
 
-use rosu_pp::{Beatmap, Mods, PpResult, StarResult};
+use rosu_pp::{
+    mania::{ManiaDifficultyAttributes, ManiaPerformanceAttributes},
+    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
+};
 
 /// Calculator for pp on osu!mania maps.
 ///
@@ -100,10 +103,10 @@ impl<'m> ManiaPP<'m> {
     }
 
     /// Returns an object which contains the pp and stars.
-    pub fn calculate(self) -> PpResult {
+    pub fn calculate(self) -> ManiaPerformanceAttributes {
         let stars = self
             .stars
-            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects).stars());
+            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects).stars as f32);
 
         let ez = self.mods.ez();
         let nf = self.mods.nf();
@@ -141,7 +144,7 @@ impl<'m> ManiaPP<'m> {
 
             let clock_rate = self.mods.speed();
 
-            ((od * clock_rate).floor() / clock_rate).ceil()
+            ((od * clock_rate as f32).floor() / clock_rate as f32).ceil()
         };
 
         let strain_value = self.compute_strain(scaled_score, stars);
@@ -149,9 +152,13 @@ impl<'m> ManiaPP<'m> {
 
         let pp = (strain_value.powf(1.1) + acc_value.powf(1.1)).powf(1.0 / 1.1) * multiplier;
 
-        PpResult {
-            pp,
-            attributes: StarResult::Mania(DifficultyAttributes { stars }),
+        ManiaPerformanceAttributes {
+            attributes: ManiaDifficultyAttributes {
+                stars: stars as f64,
+            },
+            pp_acc: acc_value as f64,
+            pp_strain: strain_value as f64,
+            pp: pp as f64,
         }
     }
 
@@ -204,27 +211,27 @@ impl ManiaAttributeProvider for f32 {
     }
 }
 
-impl ManiaAttributeProvider for DifficultyAttributes {
+impl ManiaAttributeProvider for ManiaDifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
-        Some(self.stars)
+        Some(self.stars as f32)
     }
 }
 
-impl ManiaAttributeProvider for StarResult {
+impl ManiaAttributeProvider for DifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
         if let Self::Mania(attributes) = self {
-            Some(attributes.stars)
+            Some(attributes.stars as f32)
         } else {
             None
         }
     }
 }
 
-impl ManiaAttributeProvider for PpResult {
+impl ManiaAttributeProvider for PerformanceAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
-        self.attributes.attributes()
+        self.difficulty_attributes().attributes()
     }
 }

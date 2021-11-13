@@ -67,7 +67,7 @@ impl Strain {
         self.current_strain *= self.strain_decay(current.delta);
         self.current_strain += self.strain_value_of(&current) * SKILL_MULTIPLIER;
         self.current_section_peak = self.current_strain.max(self.current_section_peak);
-        self.prev_time.replace(current.base.start_time);
+        self.prev_time.replace(current.base.start_time as f32);
     }
 
     fn strain_value_of(&mut self, current: &DifficultyHitObject) -> f32 {
@@ -79,13 +79,13 @@ impl Strain {
         for col in 0..self.hold_end_times.len() {
             let hold_end_time = self.hold_end_times[col as usize];
 
-            if end_time > hold_end_time + 1.0 {
-                if hold_end_time > current.base.start_time + 1.0 {
+            if end_time as f32 > hold_end_time + 1.0 {
+                if hold_end_time > current.base.start_time as f32 + 1.0 {
                     hold_addition = 1.0;
                 }
-            } else if (end_time - hold_end_time).abs() < 1.0 {
+            } else if (end_time as f32 - hold_end_time).abs() < 1.0 {
                 hold_addition = 0.0;
-            } else if end_time < hold_end_time - 1.0 {
+            } else if (end_time as f32) < hold_end_time - 1.0 {
                 hold_factor = 1.25;
             }
 
@@ -96,7 +96,7 @@ impl Strain {
             );
         }
 
-        self.hold_end_times[current.column] = end_time;
+        self.hold_end_times[current.column] = end_time as f32;
         self.individual_strains[current.column] += 2.0 * hold_factor;
         self.individual_strain = self.individual_strains[current.column];
 

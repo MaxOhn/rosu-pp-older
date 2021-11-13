@@ -2,7 +2,6 @@ mod catch_object;
 mod control_point_iter;
 mod curve;
 mod difficulty_object;
-mod math_util;
 mod movement;
 mod pp;
 mod slider_state;
@@ -16,12 +15,14 @@ pub use pp::*;
 use slider_state::SliderState;
 
 use rosu_pp::{
-    fruits::DifficultyAttributes,
+    fruits::FruitsDifficultyAttributes,
     parse::{HitObjectKind, Pos2},
-    Beatmap, Mods, StarResult,
+    Beatmap, Mods,
 };
 
 use std::convert::identity;
+
+use self::curve::CurveBuffers;
 
 const SECTION_LENGTH: f32 = 750.0;
 const STAR_SCALING_FACTOR: f32 = 0.145;
@@ -34,9 +35,13 @@ const LEGACY_LAST_TICK_OFFSET: f32 = 36.0;
 ///
 /// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
 // Slider parsing based on https://github.com/osufx/catch-the-pp
-pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> StarResult {
+pub fn stars(
+    map: &Beatmap,
+    mods: impl Mods,
+    passed_objects: Option<usize>,
+) -> FruitsDifficultyAttributes {
     if map.hit_objects.len() < 2 {
-        return StarResult::Fruits(DifficultyAttributes::default());
+        return FruitsDifficultyAttributes::default();
     }
 
     let take = passed_objects.unwrap_or(usize::MAX);
@@ -50,13 +55,15 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     let mut droplets = 0;
     let mut tiny_droplets = 0;
 
+    let mut curve_bufs = CurveBuffers::default();
+
     // BUG: Incorrect object order on 2B maps that have fruits within sliders
     let mut hit_objects = map
         .hit_objects
         .iter()
         .scan((None, 0.0), |(last_pos, last_time), h| match &h.kind {
             HitObjectKind::Circle => {
-                let mut h = CatchObject::new((h.pos, h.start_time));
+                let mut h = CatchObject::new((h.pos, h.start_time as f32));
 
                 if with_hr {
                     h = h.with_hr(last_pos, last_time);
@@ -69,18 +76,21 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
             HitObjectKind::Slider {
                 pixel_len,
                 repeats,
-                curve_points,
-                path_type,
+                control_points,
             } => {
+                let pixel_len = *pixel_len as f32;
+
                 // HR business
-                last_pos
-                    .replace(h.pos.x + curve_points[curve_points.len() - 1].x - curve_points[0].x);
-                *last_time = h.start_time;
+                last_pos.replace(
+                    h.pos.x + control_points[control_points.len() - 1].pos.x
+                        - control_points[0].pos.x,
+                );
+                *last_time = h.start_time as f32;
 
                 // Responsible for timing point values
-                slider_state.update(h.start_time);
+                slider_state.update(h.start_time as f32);
 
-                let mut tick_distance = 100.0 * map.sv / map.tick_rate;
+                let mut tick_distance = 100.0 * map.slider_mult as f32 / map.tick_rate as f32;
 
                 if map.version >= 8 {
                     tick_distance /=
@@ -88,23 +98,23 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
                 }
 
                 let duration = *repeats as f32 * slider_state.beat_len * pixel_len
-                    / (map.sv * slider_state.speed_mult)
+                    / (map.slider_mult as f32 * slider_state.speed_mult)
                     / 100.0;
 
                 // Build the curve w.r.t. the curve points
-                let curve = Curve::new(curve_points, *path_type);
+                let curve = Curve::new(control_points, pixel_len as f64, &mut curve_bufs);
 
                 let mut current_distance = tick_distance;
-                let time_add = duration * (tick_distance / (*pixel_len * *repeats as f32));
+                let time_add = duration * (tick_distance / (pixel_len * *repeats as f32));
 
-                let target = *pixel_len - tick_distance / 8.0;
+                let target = pixel_len - tick_distance / 8.0;
                 ticks.reserve((target / tick_distance) as usize);
 
                 // Tick of the first span
                 if current_distance < target {
                     for tick_idx in 1.. {
-                        let pos = curve.point_at_distance(current_distance);
-                        let time = h.start_time + time_add * tick_idx as f32;
+                        let pos = curve.position_at((current_distance / pixel_len) as f64);
+                        let time = h.start_time as f32 + time_add * tick_idx as f32;
                         ticks.push((pos, time));
                         current_distance += tick_distance;
 
@@ -115,24 +125,23 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
                 }
 
                 tiny_droplets +=
-                    tiny_droplet_count(h.start_time, time_add, duration, *repeats, &ticks);
+                    tiny_droplet_count(h.start_time as f32, time_add, duration, *repeats, &ticks);
 
                 let mut slider_objects = Vec::with_capacity(repeats * (ticks.len() + 1));
-                slider_objects.push((h.pos, h.start_time));
+                slider_objects.push((h.pos, h.start_time as f32));
 
                 // Other spans
                 if *repeats <= 1 {
                     slider_objects.append(&mut ticks); // automatically empties buffer for next slider
                 } else {
-                    slider_objects.append(&mut ticks.clone());
+                    slider_objects.extend(&ticks);
 
                     for repeat_id in 1..*repeats {
-                        let dist = (repeat_id % 2) as f32 * *pixel_len;
                         let time_offset = (duration / *repeats as f32) * repeat_id as f32;
-                        let pos = curve.point_at_distance(dist);
+                        let pos = curve.position_at((repeat_id % 2) as f64);
 
                         // Reverse tick
-                        slider_objects.push((pos, h.start_time + time_offset));
+                        slider_objects.push((pos, h.start_time as f32 + time_offset));
 
                         // Actual ticks
                         if repeat_id & 1 == 1 {
@@ -148,9 +157,8 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
                 }
 
                 // Slider tail
-                let dist_end = (*repeats % 2) as f32 * *pixel_len;
-                let pos = curve.point_at_distance(dist_end);
-                slider_objects.push((pos, h.start_time + duration));
+                let pos = curve.position_at((*repeats % 2) as f64);
+                slider_objects.push((pos, h.start_time as f32 + duration));
 
                 fruits += 1 + *repeats;
                 droplets += slider_objects.len() - 1 - *repeats;
@@ -166,7 +174,7 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
         .take(take);
 
     // Hyper dash business
-    let base_size = calculate_catch_width(attributes.cs) * 0.5;
+    let base_size = calculate_catch_width(attributes.cs as f32) * 0.5;
     let half_catcher_width = base_size * 0.8;
     let catcher_size = base_size;
 
@@ -175,9 +183,9 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     // Strain business
     let mut movement = Movement::new();
-    let section_len = SECTION_LENGTH * attributes.clock_rate;
+    let section_len = SECTION_LENGTH * attributes.clock_rate as f32;
     let mut current_section_end =
-        (map.hit_objects[0].start_time / section_len).ceil() * section_len;
+        (map.hit_objects[0].start_time as f32 / section_len).ceil() * section_len;
 
     let mut prev = hit_objects.next().unwrap();
     let mut curr = hit_objects.next().unwrap();
@@ -188,9 +196,14 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     let next = hit_objects.next().unwrap();
     curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
+    let h = DifficultyObject::new(
+        &curr,
+        &prev,
+        half_catcher_width,
+        attributes.clock_rate as f32,
+    );
 
-    while h.base.time > current_section_end {
+    while h.base.time as f32 > current_section_end {
         current_section_end += section_len;
     }
 
@@ -203,9 +216,14 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     for next in hit_objects {
         curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-        let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
+        let h = DifficultyObject::new(
+            &curr,
+            &prev,
+            half_catcher_width,
+            attributes.clock_rate as f32,
+        );
 
-        while h.base.time > current_section_end {
+        while h.base.time as f32 > current_section_end {
             movement.save_current_peak();
             movement.start_new_section_from(current_section_end);
             current_section_end += section_len;
@@ -218,9 +236,14 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
     }
 
     // Same as in loop but without init_hyper_dash because `curr` is the last element
-    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
+    let h = DifficultyObject::new(
+        &curr,
+        &prev,
+        half_catcher_width,
+        attributes.clock_rate as f32,
+    );
 
-    while h.base.time > current_section_end {
+    while h.base.time as f32 > current_section_end {
         movement.save_current_peak();
         movement.start_new_section_from(current_section_end);
 
@@ -232,16 +255,14 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> S
 
     let stars = movement.difficulty_value().sqrt() * STAR_SCALING_FACTOR;
 
-    let attributes = DifficultyAttributes {
-        stars,
+    FruitsDifficultyAttributes {
+        stars: stars as f64,
         ar: attributes.ar,
         n_fruits: fruits,
         n_droplets: droplets,
         n_tiny_droplets: tiny_droplets,
         max_combo: fruits + droplets,
-    };
-
-    StarResult::Fruits(attributes)
+    }
 }
 
 // BUG: Sometimes there are off-by-one errors,

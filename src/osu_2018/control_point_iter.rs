@@ -6,7 +6,7 @@ use std::slice::Iter;
 
 macro_rules! next_tuple {
     ($iter:expr, ($first:ident, $second:ident)) => {
-        $iter.next().map(|e| (e.$first, e.$second))
+        $iter.next().map(|e| (e.$first as f32, e.$second as f32))
     };
 }
 

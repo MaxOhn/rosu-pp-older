@@ -1,6 +1,9 @@
-use super::{stars, Beatmap, Mods, PpResult, StarResult};
+use rosu_pp::{
+    osu::{OsuDifficultyAttributes, OsuPerformanceAttributes},
+    DifficultyAttributes, PerformanceAttributes,
+};
 
-use rosu_pp::osu::DifficultyAttributes;
+use super::{stars, Beatmap, Mods};
 
 /// Calculator for pp on osu!standard maps.
 ///
@@ -32,7 +35,7 @@ use rosu_pp::osu::DifficultyAttributes;
 #[derive(Clone, Debug)]
 pub struct OsuPP<'m> {
     map: &'m Beatmap,
-    attributes: Option<DifficultyAttributes>,
+    attributes: Option<OsuDifficultyAttributes>,
     mods: u32,
     combo: Option<usize>,
     acc: Option<f32>,
@@ -236,11 +239,9 @@ impl<'m> OsuPP<'m> {
 
     /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::osu::DifficultyAttributes)
     /// containing stars and other attributes.
-    pub fn calculate(mut self) -> PpResult {
+    pub fn calculate(mut self) -> OsuPerformanceAttributes {
         if self.attributes.is_none() {
-            let attributes = stars(self.map, self.mods, self.passed_objects)
-                .attributes()
-                .unwrap();
+            let attributes = stars(self.map, self.mods, self.passed_objects);
             self.attributes.replace(attributes);
         }
 
@@ -269,9 +270,14 @@ impl<'m> OsuPP<'m> {
             .powf(1.0 / 1.1)
             * multiplier;
 
-        let attributes = StarResult::Osu(self.attributes.unwrap());
-
-        PpResult { pp, attributes }
+        OsuPerformanceAttributes {
+            attributes: self.attributes.unwrap(),
+            pp_acc: acc_value as f64,
+            pp_aim: aim_value as f64,
+            pp_flashlight: 0.0,
+            pp_speed: speed_value as f64,
+            pp: pp as f64,
+        }
     }
 
     fn compute_aim_value(&self, total_hits: f32) -> f32 {
@@ -279,9 +285,9 @@ impl<'m> OsuPP<'m> {
 
         // TD penalty
         let raw_aim = if self.mods.td() {
-            attributes.aim_strain.powf(0.8)
+            attributes.aim_strain.powf(0.8) as f32
         } else {
-            attributes.aim_strain
+            attributes.aim_strain as f32
         };
 
         let mut aim_value = (5.0 * (raw_aim / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
@@ -311,11 +317,11 @@ impl<'m> OsuPP<'m> {
         } else if attributes.ar < 8.0 {
             ar_factor += 0.01 * (8.0 - attributes.ar);
         }
-        aim_value *= 1.0 + ar_factor.min(ar_factor * total_hits / 1000.0);
+        aim_value *= 1.0 + ar_factor.min(ar_factor * total_hits as f64 / 1000.0) as f32;
 
         // HD bonus
         if self.mods.hd() {
-            aim_value *= 1.0 + 0.04 * (12.0 - attributes.ar);
+            aim_value *= 1.0 + 0.04 * (12.0 - attributes.ar as f32);
         }
 
         // FL bonus
@@ -328,7 +334,7 @@ impl<'m> OsuPP<'m> {
 
         // Scale with accuracy
         aim_value *= 0.5 + self.acc.unwrap() / 2.0;
-        aim_value *= 0.98 + attributes.od * attributes.od / 2500.0;
+        aim_value *= 0.98 + attributes.od as f32 * attributes.od as f32 / 2500.0;
 
         aim_value
     }
@@ -337,7 +343,7 @@ impl<'m> OsuPP<'m> {
         let attributes = self.attributes.as_ref().unwrap();
 
         let mut speed_value =
-            (5.0 * (attributes.speed_strain / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
+            (5.0 * (attributes.speed_strain as f32 / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
 
         // Longer maps are worth more
         let len_bonus = 0.95
@@ -360,12 +366,12 @@ impl<'m> OsuPP<'m> {
         // AR bonus
         if attributes.ar > 10.33 {
             let ar_factor = 0.4 * (attributes.ar - 10.33);
-            speed_value *= 1.0 + ar_factor.min(ar_factor * total_hits / 1000.0);
+            speed_value *= 1.0 + ar_factor.min(ar_factor * total_hits as f64 / 1000.0) as f32;
         }
 
         // HD bonus
         if self.mods.hd() {
-            speed_value *= 1.0 + 0.04 * (12.0 - attributes.ar);
+            speed_value *= 1.0 + 0.04 * (12.0 - attributes.ar as f32);
         }
 
         // Scaling the speed value with accuracy and OD
@@ -373,8 +379,8 @@ impl<'m> OsuPP<'m> {
         let acc_factor = self
             .acc
             .unwrap()
-            .powf((14.5 - attributes.od.max(8.0)) / 2.0);
-        speed_value *= od_factor * acc_factor;
+            .powf((14.5 - attributes.od.max(8.0)) as f32 / 2.0);
+        speed_value *= od_factor as f32 * acc_factor as f32;
 
         // Penalize n50s
         speed_value *= 0.98_f32.powf(
@@ -396,7 +402,8 @@ impl<'m> OsuPP<'m> {
             * (((n300 - (total_hits - n_circles)) * 6.0 + n100 * 2.0 + n50) / (n_circles * 6.0))
                 .max(0.0);
 
-        let mut acc_value = 1.52163_f32.powf(attributes.od) * better_acc_percentage.powi(24) * 2.83;
+        let mut acc_value =
+            1.52163_f32.powf(attributes.od as f32) * better_acc_percentage.powi(24) * 2.83;
 
         // Bonus for many hitcircles
         acc_value *= ((n_circles as f32 / 1000.0).powf(0.3)).min(1.15);
@@ -426,19 +433,19 @@ impl<'m> OsuPP<'m> {
 }
 
 pub trait OsuAttributeProvider {
-    fn attributes(self) -> Option<DifficultyAttributes>;
+    fn attributes(self) -> Option<OsuDifficultyAttributes>;
 }
 
-impl OsuAttributeProvider for DifficultyAttributes {
+impl OsuAttributeProvider for OsuDifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
+    fn attributes(self) -> Option<OsuDifficultyAttributes> {
         Some(self)
     }
 }
 
-impl OsuAttributeProvider for StarResult {
+impl OsuAttributeProvider for DifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
+    fn attributes(self) -> Option<OsuDifficultyAttributes> {
         if let Self::Osu(attributes) = self {
             Some(attributes)
         } else {
@@ -447,10 +454,10 @@ impl OsuAttributeProvider for StarResult {
     }
 }
 
-impl OsuAttributeProvider for PpResult {
+impl OsuAttributeProvider for PerformanceAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
-        self.attributes.attributes()
+    fn attributes(self) -> Option<OsuDifficultyAttributes> {
+        self.difficulty_attributes().attributes()
     }
 }
 

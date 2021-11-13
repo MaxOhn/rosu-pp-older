@@ -7,8 +7,6 @@ use curve::Curve;
 mod difficulty_object;
 use difficulty_object::DifficultyObject;
 
-mod math_util;
-
 mod osu_object;
 use osu_object::OsuObject;
 
@@ -27,7 +25,7 @@ use slider_state::SliderState;
 mod stars;
 use stars::stars;
 
-use rosu_pp::{Beatmap, Mods, PpResult, StarResult};
+use rosu_pp::{Beatmap, Mods};
 
 #[inline]
 fn difficulty_range(val: f32, max: f32, avg: f32, min: f32) -> f32 {
