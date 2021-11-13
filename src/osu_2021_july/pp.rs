@@ -1,5 +1,9 @@
-use super::DifficultyAttributes;
-use crate::{Beatmap, Mods, PpResult, StarResult};
+use rosu_pp::{
+    osu::{OsuDifficultyAttributes, OsuPerformanceAttributes},
+    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
+};
+
+use super::stars;
 
 /// Calculator for pp on osu!standard maps.
 ///
@@ -32,7 +36,7 @@ use crate::{Beatmap, Mods, PpResult, StarResult};
 #[allow(clippy::upper_case_acronyms)]
 pub struct OsuPP<'m> {
     map: &'m Beatmap,
-    attributes: Option<DifficultyAttributes>,
+    attributes: Option<OsuDifficultyAttributes>,
     mods: u32,
     combo: Option<usize>,
     acc: Option<f32>,
@@ -233,43 +237,9 @@ impl<'m> OsuPP<'m> {
 
     /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::osu::DifficultyAttributes)
     /// containing stars and other attributes.
-    #[cfg(feature = "no_leniency")]
-    pub fn calculate(self) -> PpResult {
-        self.calculate_with_func(super::no_leniency::stars)
-    }
-
-    /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::osu::DifficultyAttributes)
-    /// containing stars and other attributes.
-    #[cfg(feature = "no_sliders_no_leniency")]
-    pub fn calculate(self) -> PpResult {
-        self.calculate_with_func(super::no_sliders_no_leniency::stars)
-    }
-
-    /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::osu::DifficultyAttributes)
-    /// containing stars and other attributes.
-    #[cfg(feature = "all_included")]
-    pub fn calculate(self) -> PpResult {
-        self.calculate_with_func(super::all_included::stars)
-    }
-
-    // Omits an unnecessary error when enabled features are invalid
-    #[cfg(not(any(
-        feature = "no_leniency",
-        feature = "no_sliders_no_leniency",
-        feature = "all_included"
-    )))]
-    pub(crate) fn calculate(self) -> PpResult {
-        unreachable!()
-    }
-
-    fn calculate_with_func(
-        mut self,
-        stars_func: impl FnOnce(&Beatmap, u32, Option<usize>) -> StarResult,
-    ) -> PpResult {
+    pub fn calculate(mut self) -> OsuPerformanceAttributes {
         if self.attributes.is_none() {
-            let attributes = stars_func(self.map, self.mods, self.passed_objects)
-                .attributes()
-                .unwrap();
+            let attributes = stars(self.map, self.mods, self.passed_objects);
             self.attributes.replace(attributes);
         }
 
@@ -298,9 +268,14 @@ impl<'m> OsuPP<'m> {
             .powf(1.0 / 1.1)
             * multiplier;
 
-        let attributes = StarResult::Osu(self.attributes.unwrap());
-
-        PpResult { pp, attributes }
+        OsuPerformanceAttributes {
+            attributes: self.attributes.unwrap(),
+            pp_acc: acc_value as f64,
+            pp_aim: aim_value as f64,
+            pp_flashlight: 0.0,
+            pp_speed: speed_value as f64,
+            pp: pp as f64,
+        }
     }
 
     fn compute_aim_value(&self, total_hits: f32) -> f32 {
@@ -308,9 +283,9 @@ impl<'m> OsuPP<'m> {
 
         // TD penalty
         let raw_aim = if self.mods.td() {
-            attributes.aim_strain.powf(0.8)
+            attributes.aim_strain.powf(0.8) as f32
         } else {
-            attributes.aim_strain
+            attributes.aim_strain as f32
         };
 
         let mut aim_value = (5.0 * (raw_aim / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
@@ -343,11 +318,11 @@ impl<'m> OsuPP<'m> {
         };
 
         let ar_total_hits_factor = (1.0 + (-(0.007 * (total_hits - 400.0))).exp()).recip();
-        let ar_bonus = 1.0 + (0.03 + 0.37 * ar_total_hits_factor) * ar_factor;
+        let ar_bonus = 1.0 + (0.03 + 0.37 * ar_total_hits_factor) * ar_factor as f32;
 
         // HD bonus
         if self.mods.hd() {
-            aim_value *= 1.0 + 0.04 * (12.0 - attributes.ar);
+            aim_value *= 1.0 + 0.04 * (12.0 - attributes.ar as f32);
         }
 
         // FL bonus
@@ -363,7 +338,7 @@ impl<'m> OsuPP<'m> {
 
         // Scale with accuracy
         aim_value *= 0.5 + self.acc.unwrap() / 2.0;
-        aim_value *= 0.98 + attributes.od * attributes.od / 2500.0;
+        aim_value *= 0.98 + attributes.od as f32 * attributes.od as f32 / 2500.0;
 
         aim_value
     }
@@ -372,7 +347,7 @@ impl<'m> OsuPP<'m> {
         let attributes = self.attributes.as_ref().unwrap();
 
         let mut speed_value =
-            (5.0 * (attributes.speed_strain / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
+            (5.0 * (attributes.speed_strain as f32 / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
 
         // Longer maps are worth more
         let len_bonus = 0.95
@@ -401,11 +376,11 @@ impl<'m> OsuPP<'m> {
 
         let ar_total_hits_factor = (1.0 + (-(0.007 * (total_hits - 400.0))).exp()).recip();
 
-        speed_value *= 1.0 + (0.03 + 0.37 * ar_total_hits_factor) * ar_factor;
+        speed_value *= 1.0 + (0.03 + 0.37 * ar_total_hits_factor) * ar_factor as f32;
 
         // HD bonus
         if self.mods.hd() {
-            speed_value *= 1.0 + 0.04 * (12.0 - attributes.ar);
+            speed_value *= 1.0 + 0.04 * (12.0 - attributes.ar as f32);
         }
 
         // Scaling the speed value with accuracy and OD
@@ -413,8 +388,8 @@ impl<'m> OsuPP<'m> {
         let acc_factor = self
             .acc
             .unwrap()
-            .powf((14.5 - attributes.od.max(8.0)) / 2.0);
-        speed_value *= od_factor * acc_factor;
+            .powf((14.5 - attributes.od.max(8.0)) as f32 / 2.0);
+        speed_value *= od_factor as f32 * acc_factor;
 
         // Penalize n50s
         speed_value *= 0.98_f32.powf(
@@ -436,7 +411,8 @@ impl<'m> OsuPP<'m> {
             * (((n300 - (total_hits - n_circles)) * 6.0 + n100 * 2.0 + n50) / (n_circles * 6.0))
                 .max(0.0);
 
-        let mut acc_value = 1.52163_f32.powf(attributes.od) * better_acc_percentage.powi(24) * 2.83;
+        let mut acc_value =
+            1.52163_f32.powf(attributes.od as f32) * better_acc_percentage.powi(24) * 2.83;
 
         // Bonus for many hitcircles
         acc_value *= ((n_circles as f32 / 1000.0).powf(0.3)).min(1.15);
@@ -466,19 +442,19 @@ impl<'m> OsuPP<'m> {
 }
 
 pub trait OsuAttributeProvider {
-    fn attributes(self) -> Option<DifficultyAttributes>;
+    fn attributes(self) -> Option<OsuDifficultyAttributes>;
 }
 
-impl OsuAttributeProvider for DifficultyAttributes {
+impl OsuAttributeProvider for OsuDifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
+    fn attributes(self) -> Option<OsuDifficultyAttributes> {
         Some(self)
     }
 }
 
-impl OsuAttributeProvider for StarResult {
+impl OsuAttributeProvider for DifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
+    fn attributes(self) -> Option<OsuDifficultyAttributes> {
         #[allow(irrefutable_let_patterns)]
         if let Self::Osu(attributes) = self {
             Some(attributes)
@@ -488,103 +464,9 @@ impl OsuAttributeProvider for StarResult {
     }
 }
 
-impl OsuAttributeProvider for PpResult {
+impl OsuAttributeProvider for PerformanceAttributes {
     #[inline]
-    fn attributes(self) -> Option<DifficultyAttributes> {
-        self.attributes.attributes()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::Beatmap;
-
-    #[test]
-    fn osu_only_accuracy() {
-        let map = Beatmap::default();
-
-        let total_objects = 1234;
-        let target_acc = 97.5;
-
-        let calculator = OsuPP::new(&map)
-            .passed_objects(total_objects)
-            .accuracy(target_acc);
-
-        let numerator = 6 * calculator.n300.unwrap_or(0)
-            + 2 * calculator.n100.unwrap_or(0)
-            + calculator.n50.unwrap_or(0);
-        let denominator = 6 * total_objects;
-        let acc = 100.0 * numerator as f32 / denominator as f32;
-
-        assert!(
-            (target_acc - acc).abs() < 1.0,
-            "Expected: {} | Actual: {}",
-            target_acc,
-            acc
-        );
-    }
-
-    #[test]
-    fn osu_accuracy_and_n50() {
-        let map = Beatmap::default();
-
-        let total_objects = 1234;
-        let target_acc = 97.5;
-        let n50 = 30;
-
-        let calculator = OsuPP::new(&map)
-            .passed_objects(total_objects)
-            .n50(n50)
-            .accuracy(target_acc);
-
-        assert!(
-            (calculator.n50.unwrap() as i32 - n50 as i32).abs() <= 4,
-            "Expected: {} | Actual: {}",
-            n50,
-            calculator.n50.unwrap()
-        );
-
-        let numerator = 6 * calculator.n300.unwrap_or(0)
-            + 2 * calculator.n100.unwrap_or(0)
-            + calculator.n50.unwrap_or(0);
-        let denominator = 6 * total_objects;
-        let acc = 100.0 * numerator as f32 / denominator as f32;
-
-        assert!(
-            (target_acc - acc).abs() < 1.0,
-            "Expected: {} | Actual: {}",
-            target_acc,
-            acc
-        );
-    }
-
-    #[test]
-    fn osu_missing_objects() {
-        let map = Beatmap::default();
-
-        let total_objects = 1234;
-        let n300 = 1000;
-        let n100 = 200;
-        let n50 = 30;
-
-        let mut calculator = OsuPP::new(&map)
-            .passed_objects(total_objects)
-            .n300(n300)
-            .n100(n100)
-            .n50(n50);
-
-        calculator.assert_hitresults();
-
-        let n_objects = calculator.n300.unwrap()
-            + calculator.n100.unwrap()
-            + calculator.n50.unwrap()
-            + calculator.n_misses;
-
-        assert_eq!(
-            total_objects, n_objects,
-            "Expected: {} | Actual: {}",
-            total_objects, n_objects
-        );
+    fn attributes(self) -> Option<OsuDifficultyAttributes> {
+        self.difficulty_attributes().attributes()
     }
 }

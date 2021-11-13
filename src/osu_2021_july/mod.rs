@@ -2,12 +2,14 @@ mod control_point_iter;
 mod curve;
 mod difficulty_object;
 mod osu_object;
+mod pp;
 mod skill;
 mod skill_kind;
 mod slider_state;
 
 use difficulty_object::DifficultyObject;
 use osu_object::OsuObject;
+pub use pp::{OsuAttributeProvider, OsuPP};
 use skill::Skill;
 use skill_kind::SkillKind;
 use slider_state::SliderState;
