@@ -20,8 +20,6 @@ use rosu_pp::{
     Beatmap, Mods,
 };
 
-use std::convert::identity;
-
 use self::curve::CurveBuffers;
 
 const SECTION_LENGTH: f32 = 750.0;
@@ -169,7 +167,7 @@ pub fn stars(
             }
             HitObjectKind::Spinner { .. } | HitObjectKind::Hold { .. } => Some(None),
         })
-        .filter_map(identity)
+        .flatten()
         .flatten()
         .take(take);
 
