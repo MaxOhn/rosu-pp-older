@@ -5,7 +5,7 @@ authors = ["MaxOhn <ohn.m@hotmail.de>"]
 edition = "2018"
 
 [dependencies.rosu-pp]
-path = "../rosu-pp"
-# git = "https://github.com/MaxOhn/rosu-pp"
-# branch = "next"
+# path = "../rosu-pp"
+git = "https://github.com/MaxOhn/rosu-pp"
+branch = "next"
 features = ["async_tokio"]
