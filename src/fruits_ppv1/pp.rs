@@ -306,7 +306,7 @@ impl<'m> FruitsPP<'m> {
         }
 
         FruitsPerformanceAttributes {
-            attributes,
+            difficulty: attributes,
             pp: pp as f64,
         }
     }

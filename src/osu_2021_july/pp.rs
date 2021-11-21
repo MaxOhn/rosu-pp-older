@@ -269,7 +269,7 @@ impl<'m> OsuPP<'m> {
             * multiplier;
 
         OsuPerformanceAttributes {
-            attributes: self.attributes.unwrap(),
+            difficulty: self.attributes.unwrap(),
             pp_acc: acc_value as f64,
             pp_aim: aim_value as f64,
             pp_flashlight: 0.0,

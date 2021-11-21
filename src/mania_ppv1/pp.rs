@@ -153,7 +153,7 @@ impl<'m> ManiaPP<'m> {
         let pp = (strain_value.powf(1.1) + acc_value.powf(1.1)).powf(1.0 / 1.1) * multiplier;
 
         ManiaPerformanceAttributes {
-            attributes: ManiaDifficultyAttributes {
+            difficulty: ManiaDifficultyAttributes {
                 stars: stars as f64,
             },
             pp_acc: acc_value as f64,

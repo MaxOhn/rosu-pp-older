@@ -7,7 +7,7 @@ use difficulty_object::DifficultyObject;
 pub use pp::*;
 use strain::Strain;
 
-use rosu_pp::{Beatmap, Mods, taiko::TaikoDifficultyAttributes};
+use rosu_pp::{taiko::TaikoDifficultyAttributes, Beatmap, Mods};
 
 const SECTION_LEN: f32 = 400.0;
 
@@ -16,11 +16,19 @@ const STAR_SCALING_FACTOR: f32 = 0.04125;
 /// Star calculation for osu!taiko maps.
 ///
 /// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> TaikoDifficultyAttributes {
+pub fn stars(
+    map: &Beatmap,
+    mods: impl Mods,
+    passed_objects: Option<usize>,
+) -> TaikoDifficultyAttributes {
     let take = passed_objects.unwrap_or_else(|| map.hit_objects.len());
+    let max_combo = map.n_circles as usize;
 
     if take < 2 {
-        return TaikoDifficultyAttributes { stars: 0.0 };
+        return TaikoDifficultyAttributes {
+            stars: 0.0,
+            max_combo,
+        };
     }
 
     let clock_rate = mods.speed() as f32;
@@ -66,5 +74,5 @@ pub fn stars(map: &Beatmap, mods: impl Mods, passed_objects: Option<usize>) -> T
 
     let stars = (strain.difficulty_value() * STAR_SCALING_FACTOR) as f64;
 
-    TaikoDifficultyAttributes { stars }
+    TaikoDifficultyAttributes { stars, max_combo }
 }

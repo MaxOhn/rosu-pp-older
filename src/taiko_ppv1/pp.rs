@@ -180,8 +180,9 @@ impl<'m> TaikoPP<'m> {
         let pp = (strain_value.powf(1.1) + acc_value.powf(1.1)).powf(1.0 / 1.1) * multiplier;
 
         TaikoPerformanceAttributes {
-            attributes: TaikoDifficultyAttributes {
+            difficulty: TaikoDifficultyAttributes {
                 stars: stars as f64,
+                max_combo: self.map.n_circles as usize,
             },
             pp: pp as f64,
             pp_acc: acc_value as f64,
