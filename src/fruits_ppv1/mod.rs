@@ -259,7 +259,6 @@ pub fn stars(
         n_fruits: fruits,
         n_droplets: droplets,
         n_tiny_droplets: tiny_droplets,
-        max_combo: fruits + droplets,
     }
 }
 

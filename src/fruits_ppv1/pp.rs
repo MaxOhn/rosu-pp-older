@@ -155,14 +155,14 @@ impl<'m> FruitsPP<'m> {
         }
 
         let attributes = self.attributes.as_ref().unwrap();
+        let max_combo = attributes.max_combo();
 
         let n_droplets = self
             .n_droplets
             .unwrap_or_else(|| attributes.n_droplets.saturating_sub(self.n_misses));
 
         let n_fruits = self.n_fruits.unwrap_or_else(|| {
-            attributes
-                .max_combo
+            max_combo
                 .saturating_sub(self.n_misses)
                 .saturating_sub(n_droplets)
         });
@@ -171,7 +171,7 @@ impl<'m> FruitsPP<'m> {
         acc /= 100.0;
 
         let n_tiny_droplets = self.n_tiny_droplets.unwrap_or_else(|| {
-            ((acc * (attributes.max_combo + max_tiny_droplets) as f32).round() as usize)
+            ((acc * (max_combo + max_tiny_droplets) as f32).round() as usize)
                 .saturating_sub(n_fruits)
                 .saturating_sub(n_droplets)
         });
@@ -187,10 +187,12 @@ impl<'m> FruitsPP<'m> {
     }
 
     fn assert_hitresults(&mut self, attributes: &FruitsDifficultyAttributes) {
+        let max_combo = attributes.max_combo();
+
         let correct_combo_hits = self
             .n_fruits
             .and_then(|f| self.n_droplets.map(|d| f + d + self.n_misses))
-            .filter(|h| *h == attributes.max_combo);
+            .filter(|h| *h == max_combo);
 
         let correct_fruits = self
             .n_fruits
@@ -216,8 +218,7 @@ impl<'m> FruitsPP<'m> {
             let mut n_tiny_droplets = self.n_tiny_droplets.unwrap_or(0);
             let n_tiny_droplet_misses = self.n_tiny_droplet_misses.unwrap_or(0);
 
-            let missing = attributes
-                .max_combo
+            let missing = max_combo
                 .saturating_sub(n_fruits)
                 .saturating_sub(n_droplets)
                 .saturating_sub(self.n_misses);
@@ -247,6 +248,8 @@ impl<'m> FruitsPP<'m> {
             .take()
             .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects));
 
+        let max_combo = attributes.max_combo();
+
         // Make sure all objects are set
         self.assert_hitresults(&attributes);
 
@@ -258,7 +261,7 @@ impl<'m> FruitsPP<'m> {
         let mut combo_hits = self.combo_hits();
 
         if combo_hits == 0 {
-            combo_hits = attributes.max_combo;
+            combo_hits = max_combo;
         }
 
         // Longer maps are worth more
@@ -271,10 +274,8 @@ impl<'m> FruitsPP<'m> {
         pp *= 0.97_f32.powi(self.n_misses as i32);
 
         // Combo scaling
-        if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
-            pp *= (combo as f32 / attributes.max_combo as f32)
-                .powf(0.8)
-                .min(1.0);
+        if let Some(combo) = self.combo.filter(|_| max_combo > 0) {
+            pp *= (combo as f32 / max_combo as f32).powf(0.8).min(1.0);
         }
 
         // AR scaling
