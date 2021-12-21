@@ -84,7 +84,7 @@ impl OsuObject {
                         progress %= 1.0;
                     }
 
-                    let curr_pos = curve.position_at(progress as f64);
+                    let curr_pos = h.pos + curve.position_at(progress as f64);
 
                     let diff = curr_pos - end_pos;
                     let mut dist = diff.length();

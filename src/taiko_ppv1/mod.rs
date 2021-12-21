@@ -42,10 +42,9 @@ pub fn stars(
         .hit_objects
         .iter()
         .take(take)
-        .enumerate()
         .skip(1)
         .zip(map.hit_objects.iter())
-        .map(|((idx, base), prev)| DifficultyObject::new(idx, base, prev, clock_rate));
+        .map(|(base, prev)| DifficultyObject::new(base, prev, clock_rate));
 
     let mut strain = Strain::new();
 

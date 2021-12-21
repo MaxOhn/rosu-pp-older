@@ -111,7 +111,7 @@ pub fn stars(
                 // Tick of the first span
                 if current_distance < target {
                     for tick_idx in 1.. {
-                        let pos = curve.position_at((current_distance / pixel_len) as f64);
+                        let pos = h.pos + curve.position_at((current_distance / pixel_len) as f64);
                         let time = h.start_time as f32 + time_add * tick_idx as f32;
                         ticks.push((pos, time));
                         current_distance += tick_distance;
@@ -136,7 +136,7 @@ pub fn stars(
 
                     for repeat_id in 1..*repeats {
                         let time_offset = (duration / *repeats as f32) * repeat_id as f32;
-                        let pos = curve.position_at((repeat_id % 2) as f64);
+                        let pos = h.pos + curve.position_at((repeat_id % 2) as f64);
 
                         // Reverse tick
                         slider_objects.push((pos, h.start_time as f32 + time_offset));
@@ -155,7 +155,7 @@ pub fn stars(
                 }
 
                 // Slider tail
-                let pos = curve.position_at((*repeats % 2) as f64);
+                let pos = h.pos + curve.position_at((*repeats % 2) as f64);
                 slider_objects.push((pos, h.start_time as f32 + duration));
 
                 fruits += 1 + *repeats;
