@@ -7,20 +7,20 @@ const NORMALIZED_HITOBJECT_RADIUS: f32 = 41.0;
 const POSITION_EPSILON: f32 = NORMALIZED_HITOBJECT_RADIUS - ABSOLUTE_PLAYER_POSITIONING_ERROR;
 const DIRECTION_CHANGE_BONUS: f32 = 12.5;
 
-const SKILL_MULTIPLIER: f32 = 850.0;
-const STRAIN_DECAY_BASE: f32 = 0.2;
+const SKILL_MULTIPLIER: f64 = 850.0;
+const STRAIN_DECAY_BASE: f64 = 0.2;
 
-const DECAY_WEIGHT: f32 = 0.94;
+const DECAY_WEIGHT: f64 = 0.94;
 
 pub(crate) struct Movement {
     last_player_position: Option<f32>,
     last_distance_moved: f32,
 
-    current_strain: f32,
-    current_section_peak: f32,
+    current_strain: f64,
+    current_section_peak: f64,
 
-    pub(crate) strain_peaks: Vec<f32>,
-    prev_time: Option<f32>,
+    pub(crate) strain_peaks: Vec<f64>,
+    prev_time: Option<f64>,
 }
 
 impl Movement {
@@ -44,7 +44,7 @@ impl Movement {
     }
 
     #[inline]
-    pub(crate) fn start_new_section_from(&mut self, time: f32) {
+    pub(crate) fn start_new_section_from(&mut self, time: f64) {
         self.current_section_peak = self.peak_strain(time - self.prev_time.unwrap());
     }
 
@@ -55,7 +55,7 @@ impl Movement {
         self.prev_time.replace(current.base.time);
     }
 
-    pub(crate) fn difficulty_value(&mut self) -> f32 {
+    pub(crate) fn difficulty_value(&mut self) -> f64 {
         let mut difficulty = 0.0;
         let mut weight = 1.0;
 
@@ -70,7 +70,7 @@ impl Movement {
         difficulty
     }
 
-    fn strain_value_of(&mut self, current: &DifficultyObject) -> f32 {
+    fn strain_value_of(&mut self, current: &DifficultyObject) -> f64 {
         let last_player_pos = self
             .last_player_position
             .unwrap_or(current.last_normalized_pos);
@@ -82,7 +82,7 @@ impl Movement {
         let dist_moved = pos - last_player_pos;
 
         let mut dist_addition = dist_moved.abs().powf(1.3) / 500.0;
-        let sqrt_strain = current.strain_time.sqrt();
+        let sqrt_strain = current.strain_time.sqrt() as f32;
 
         let mut bonus = 0.0;
 
@@ -118,16 +118,16 @@ impl Movement {
         self.last_player_position.replace(pos);
         self.last_distance_moved = dist_moved;
 
-        dist_addition / current.strain_time
+        dist_addition as f64 / current.strain_time
     }
 
     #[inline]
-    fn peak_strain(&self, delta_time: f32) -> f32 {
+    fn peak_strain(&self, delta_time: f64) -> f64 {
         self.current_strain * strain_decay(delta_time)
     }
 }
 
 #[inline]
-fn strain_decay(ms: f32) -> f32 {
+fn strain_decay(ms: f64) -> f64 {
     STRAIN_DECAY_BASE.powf(ms / 1000.0)
 }

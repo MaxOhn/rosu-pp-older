@@ -6,12 +6,12 @@ pub(crate) struct DifficultyObject<'o> {
     pub(crate) base: &'o CatchObject,
     pub(crate) last: &'o CatchObject,
 
-    pub(crate) delta: f32,
+    pub(crate) delta: f64,
 
     pub(crate) normalized_pos: f32,
     pub(crate) last_normalized_pos: f32,
 
-    pub(crate) strain_time: f32,
+    pub(crate) strain_time: f64,
 }
 
 impl<'o> DifficultyObject<'o> {
@@ -20,7 +20,7 @@ impl<'o> DifficultyObject<'o> {
         base: &'o CatchObject,
         last: &'o CatchObject,
         half_catcher_width: f32,
-        clock_rate: f32,
+        clock_rate: f64,
     ) -> Self {
         let delta = (base.time - last.time) / clock_rate;
         let strain_time = delta.max(25.0);

@@ -22,12 +22,13 @@ use rosu_pp::{
 
 use self::curve::CurveBuffers;
 
-const SECTION_LENGTH: f32 = 750.0;
-const STAR_SCALING_FACTOR: f32 = 0.145;
+const SECTION_LENGTH: f64 = 750.0;
+const STAR_SCALING_FACTOR: f64 = 0.145;
 
 const CATCHER_SIZE: f32 = 106.75;
 
-const LEGACY_LAST_TICK_OFFSET: f32 = 36.0;
+const LEGACY_LAST_TICK_OFFSET: f64 = 36.0;
+const BASE_SCORING_DISTANCE: f64 = 100.0;
 
 /// Star calculation for osu!ctb maps
 ///
@@ -61,7 +62,7 @@ pub fn stars(
         .iter()
         .scan((None, 0.0), |(last_pos, last_time), h| match &h.kind {
             HitObjectKind::Circle => {
-                let mut h = CatchObject::new((h.pos, h.start_time as f32));
+                let mut h = CatchObject::new((h.pos, h.start_time));
 
                 if with_hr {
                     h = h.with_hr(last_pos, last_time);
@@ -76,34 +77,40 @@ pub fn stars(
                 repeats,
                 control_points,
             } => {
-                let pixel_len = *pixel_len as f32;
+                let pixel_len = *pixel_len;
 
                 // HR business
                 last_pos.replace(
                     h.pos.x + control_points[control_points.len() - 1].pos.x
                         - control_points[0].pos.x,
                 );
-                *last_time = h.start_time as f32;
+                *last_time = h.start_time;
 
                 // Responsible for timing point values
                 slider_state.update(h.start_time as f32);
 
-                let mut tick_distance = 100.0 * map.slider_mult as f32 / map.tick_rate as f32;
+                let mut tick_distance = 100.0 * map.slider_mult / map.tick_rate;
+                let span_count = (*repeats + 1) as f64;
 
                 if map.version >= 8 {
-                    tick_distance /=
-                        (100.0 / slider_state.speed_mult).max(10.0).min(1000.0) / 100.0;
+                    tick_distance /= (100.0 / slider_state.speed_mult as f64)
+                        .max(10.0)
+                        .min(1000.0)
+                        / 100.0;
                 }
 
-                let duration = *repeats as f32 * slider_state.beat_len * pixel_len
-                    / (map.slider_mult as f32 * slider_state.speed_mult)
-                    / 100.0;
-
                 // Build the curve w.r.t. the curve points
-                let curve = Curve::new(control_points, pixel_len as f64, &mut curve_bufs);
+                let curve = Curve::new(control_points, pixel_len, &mut curve_bufs);
+
+                let velocity =
+                    (BASE_SCORING_DISTANCE * map.slider_mult * slider_state.speed_mult as f64)
+                        / slider_state.beat_len as f64;
+
+                let end_time = h.start_time + span_count * curve.dist() / velocity;
+                let duration = end_time - h.start_time;
 
                 let mut current_distance = tick_distance;
-                let time_add = duration * (tick_distance / (pixel_len * *repeats as f32));
+                let time_add = duration * tick_distance / (pixel_len * span_count);
 
                 let target = pixel_len - tick_distance / 8.0;
                 ticks.reserve((target / tick_distance) as usize);
@@ -111,8 +118,8 @@ pub fn stars(
                 // Tick of the first span
                 if current_distance < target {
                     for tick_idx in 1.. {
-                        let pos = h.pos + curve.position_at((current_distance / pixel_len) as f64);
-                        let time = h.start_time as f32 + time_add * tick_idx as f32;
+                        let pos = h.pos + curve.position_at(current_distance / pixel_len);
+                        let time = h.start_time + time_add * tick_idx as f64;
                         ticks.push((pos, time));
                         current_distance += tick_distance;
 
@@ -122,11 +129,16 @@ pub fn stars(
                     }
                 }
 
-                tiny_droplets +=
-                    tiny_droplet_count(h.start_time as f32, time_add, duration, *repeats, &ticks);
+                tiny_droplets += tiny_droplet_count(
+                    h.start_time,
+                    time_add,
+                    duration,
+                    span_count as usize,
+                    &ticks,
+                );
 
                 let mut slider_objects = Vec::with_capacity(repeats * (ticks.len() + 1));
-                slider_objects.push((h.pos, h.start_time as f32));
+                slider_objects.push((h.pos, h.start_time));
 
                 // Other spans
                 if *repeats <= 1 {
@@ -135,16 +147,16 @@ pub fn stars(
                     slider_objects.extend(&ticks);
 
                     for repeat_id in 1..*repeats {
-                        let time_offset = (duration / *repeats as f32) * repeat_id as f32;
+                        let time_offset = (duration / *repeats as f64) * repeat_id as f64;
                         let pos = h.pos + curve.position_at((repeat_id % 2) as f64);
 
                         // Reverse tick
-                        slider_objects.push((pos, h.start_time as f32 + time_offset));
+                        slider_objects.push((pos, h.start_time + time_offset));
 
                         // Actual ticks
                         if repeat_id & 1 == 1 {
                             slider_objects.extend(ticks.iter().rev().enumerate().map(
-                                |(i, (pos, time))| (*pos, *time + time_add * 2.0 * (i + 1) as f32),
+                                |(i, (pos, time))| (*pos, *time + time_add * 2.0 * (i + 1) as f64),
                             ));
                         } else {
                             slider_objects.extend(ticks.iter().copied());
@@ -156,7 +168,7 @@ pub fn stars(
 
                 // Slider tail
                 let pos = h.pos + curve.position_at((*repeats % 2) as f64);
-                slider_objects.push((pos, h.start_time as f32 + duration));
+                slider_objects.push((pos, h.start_time + duration));
 
                 fruits += 1 + *repeats;
                 droplets += slider_objects.len() - 1 - *repeats;
@@ -181,9 +193,9 @@ pub fn stars(
 
     // Strain business
     let mut movement = Movement::new();
-    let section_len = SECTION_LENGTH * attributes.clock_rate as f32;
+    let section_len = SECTION_LENGTH * attributes.clock_rate;
     let mut current_section_end =
-        (map.hit_objects[0].start_time as f32 / section_len).ceil() * section_len;
+        (map.hit_objects[0].start_time / section_len).ceil() * section_len;
 
     let mut prev = hit_objects.next().unwrap();
     let mut curr = hit_objects.next().unwrap();
@@ -194,14 +206,9 @@ pub fn stars(
     let next = hit_objects.next().unwrap();
     curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-    let h = DifficultyObject::new(
-        &curr,
-        &prev,
-        half_catcher_width,
-        attributes.clock_rate as f32,
-    );
+    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
 
-    while h.base.time as f32 > current_section_end {
+    while h.base.time > current_section_end {
         current_section_end += section_len;
     }
 
@@ -214,14 +221,9 @@ pub fn stars(
     for next in hit_objects {
         curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-        let h = DifficultyObject::new(
-            &curr,
-            &prev,
-            half_catcher_width,
-            attributes.clock_rate as f32,
-        );
+        let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
 
-        while h.base.time as f32 > current_section_end {
+        while h.base.time > current_section_end {
             movement.save_current_peak();
             movement.start_new_section_from(current_section_end);
             current_section_end += section_len;
@@ -234,14 +236,9 @@ pub fn stars(
     }
 
     // Same as in loop but without init_hyper_dash because `curr` is the last element
-    let h = DifficultyObject::new(
-        &curr,
-        &prev,
-        half_catcher_width,
-        attributes.clock_rate as f32,
-    );
+    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, attributes.clock_rate);
 
-    while h.base.time as f32 > current_section_end {
+    while h.base.time > current_section_end {
         movement.save_current_peak();
         movement.start_new_section_from(current_section_end);
 
@@ -254,7 +251,7 @@ pub fn stars(
     let stars = movement.difficulty_value().sqrt() * STAR_SCALING_FACTOR;
 
     FruitsDifficultyAttributes {
-        stars: stars as f64,
+        stars,
         ar: attributes.ar,
         n_fruits: fruits,
         n_droplets: droplets,
@@ -265,11 +262,11 @@ pub fn stars(
 // BUG: Sometimes there are off-by-one errors,
 // presumably caused by floating point inaccuracies
 fn tiny_droplet_count(
-    start_time: f32,
-    time_between_ticks: f32,
-    duration: f32,
-    spans: usize,
-    ticks: &[(Pos2, f32)],
+    start_time: f64,
+    time_between_ticks: f64,
+    duration: f64,
+    span_count: usize,
+    ticks: &[(Pos2, f64)],
 ) -> usize {
     // tiny droplets preceeding a _tick_
     let per_tick = if !ticks.is_empty() && time_between_ticks > 80.0 {
@@ -285,7 +282,7 @@ fn tiny_droplet_count(
 
     // tiny droplets preceeding a _reverse_
     let last = ticks.last().map_or(start_time, |(_, last)| *last);
-    let repeat_time = start_time + duration / spans as f32;
+    let repeat_time = start_time + duration / span_count as f64;
     let since_last_tick = repeat_time - last;
 
     let span_last_section = if since_last_tick > 80.0 {
@@ -299,7 +296,7 @@ fn tiny_droplet_count(
     // tiny droplets preceeding the slider tail
     // necessary to handle distinctly because of the legacy last tick
     let last = ticks.last().map_or(start_time, |(_, last)| *last);
-    let end_time = start_time + duration / spans as f32 - LEGACY_LAST_TICK_OFFSET;
+    let end_time = start_time + duration / span_count as f64 - LEGACY_LAST_TICK_OFFSET;
     let since_last_tick = end_time - last;
 
     let last_section = if since_last_tick > 80.0 {
@@ -311,11 +308,13 @@ fn tiny_droplet_count(
     };
 
     // Combine tiny droplets counts
-    per_tick * ticks.len() * spans + span_last_section * (spans.saturating_sub(1)) + last_section
+    per_tick * ticks.len() * span_count
+        + span_last_section * (span_count.saturating_sub(1))
+        + last_section
 }
 
 #[inline]
-fn shrink_down(mut val: f32) -> f32 {
+fn shrink_down(mut val: f64) -> f64 {
     while val > 100.0 {
         val /= 2.0;
     }
@@ -324,7 +323,7 @@ fn shrink_down(mut val: f32) -> f32 {
 }
 
 #[inline]
-fn count_iterations(mut start: f32, step: f32, end: f32) -> usize {
+fn count_iterations(mut start: f64, step: f64, end: f64) -> usize {
     let mut count = 0;
 
     while start < end {
