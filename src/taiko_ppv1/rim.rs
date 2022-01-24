@@ -1,14 +1,7 @@
-use rosu_pp::parse::{HitObject, HitSound};
+use rosu_pp::parse::HitSound;
 
 pub(crate) trait Rim {
     fn is_rim(&self) -> bool;
-}
-
-impl Rim for HitObject {
-    #[inline]
-    fn is_rim(&self) -> bool {
-        self.sound.clap() || self.sound.whistle()
-    }
 }
 
 impl Rim for u8 {
