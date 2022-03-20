@@ -10,21 +10,21 @@ use rosu_pp::{
 /// # Example
 ///
 /// ```
-/// # use rosu_pp::{ManiaPP, PpResult, Beatmap};
+/// # use rosu_pp::{ManiaPP, Beatmap};
 /// # /*
 /// let map: Beatmap = ...
 /// # */
 /// # let map = Beatmap::default();
-/// let pp_result: PpResult = ManiaPP::new(&map)
+/// let attrs = ManiaPP::new(&map)
 ///     .mods(64) // DT
 ///     .score(765_432)
 ///     .calculate();
 ///
-/// println!("PP: {} | Stars: {}", pp_result.pp(), pp_result.stars());
+/// println!("PP: {} | Stars: {}", attrs.pp(), attrs.stars());
 ///
 /// let next_result = ManiaPP::new(&map)
-///     .attributes(pp_result)  // reusing previous results for performance
-///     .mods(8 + 64)           // has to be the same to reuse attributes
+///     .attributes(attrs) // reusing previous results for performance
+///     .mods(8 + 64)      // has to be the same to reuse attributes
 ///     .score(950_000)
 ///     .calculate();
 ///
@@ -142,7 +142,7 @@ impl<'m> ManiaPP<'m> {
                 od /= 1.4;
             }
 
-            let clock_rate = self.mods.speed();
+            let clock_rate = self.mods.clock_rate();
 
             ((od * clock_rate as f32).floor() / clock_rate as f32).ceil()
         };

@@ -1,7 +1,7 @@
 use super::stars;
 
 use rosu_pp::{
-    fruits::{FruitsDifficultyAttributes, FruitsPerformanceAttributes},
+    catch::{CatchDifficultyAttributes, CatchPerformanceAttributes},
     Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
 };
 
@@ -10,23 +10,23 @@ use rosu_pp::{
 /// # Example
 ///
 /// ```
-/// # use rosu_pp::{FruitsPP, PpResult, Beatmap};
+/// # use rosu_pp::{CatchPP, Beatmap};
 /// # /*
 /// let map: Beatmap = ...
 /// # */
 /// # let map = Beatmap::default();
-/// let pp_result: PpResult = FruitsPP::new(&map)
+/// let attrs = CatchPP::new(&map)
 ///     .mods(8 + 64) // HDDT
 ///     .combo(1234)
 ///     .misses(1)
 ///     .accuracy(98.5)
 ///     .calculate();
 ///
-/// println!("PP: {} | Stars: {}", pp_result.pp(), pp_result.stars());
+/// println!("PP: {} | Stars: {}", attrs.pp(), attrs.stars());
 ///
-/// let next_result = FruitsPP::new(&map)
-///     .attributes(pp_result)  // reusing previous results for performance
-///     .mods(8 + 64)           // has to be the same to reuse attributes
+/// let next_result = CatchPP::new(&map)
+///     .attributes(attrs) // reusing previous results for performance
+///     .mods(8 + 64)      // has to be the same to reuse attributes
 ///     .accuracy(99.5)
 ///     .calculate();
 ///
@@ -35,7 +35,7 @@ use rosu_pp::{
 #[derive(Clone, Debug)]
 pub struct FruitsPP<'m> {
     map: &'m Beatmap,
-    attributes: Option<FruitsDifficultyAttributes>,
+    attributes: Option<CatchDifficultyAttributes>,
     mods: u32,
     combo: Option<usize>,
 
@@ -65,13 +65,13 @@ impl<'m> FruitsPP<'m> {
         }
     }
 
-    /// [`FruitsAttributeProvider`] is implemented by [`DifficultyAttributes`](crate::fruits::DifficultyAttributes),
-    /// [`StarResult`](crate::StarResult), and by [`PpResult`](crate::PpResult) meaning you can give the
+    /// [`CatchAttributeProvider`] is implemented by [`DifficultyAttributes`](crate::catch::DifficultyAttributes),
+    /// and by [`StarResult`](crate::StarResult) meaning you can give the
     /// result of a star calculation or a pp calculation.
     /// If you already calculated the attributes for the current map-mod combination,
     /// be sure to put them in here so that they don't have to be recalculated.
     #[inline]
-    pub fn attributes(mut self, attributes: impl FruitsAttributeProvider) -> Self {
+    pub fn attributes(mut self, attributes: impl CatchAttributeProvider) -> Self {
         if let Some(attributes) = attributes.attributes() {
             self.attributes.replace(attributes);
         }
@@ -186,7 +186,7 @@ impl<'m> FruitsPP<'m> {
         self
     }
 
-    fn assert_hitresults(&mut self, attributes: &FruitsDifficultyAttributes) {
+    fn assert_hitresults(&mut self, attributes: &CatchDifficultyAttributes) {
         let max_combo = attributes.max_combo();
 
         let correct_combo_hits = self
@@ -240,9 +240,9 @@ impl<'m> FruitsPP<'m> {
         }
     }
 
-    /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::fruits::DifficultyAttributes)
+    /// Returns an object which contains the pp and [`DifficultyAttributes`](crate::catch::DifficultyAttributes)
     /// containing stars and other attributes.
-    pub fn calculate(mut self) -> FruitsPerformanceAttributes {
+    pub fn calculate(mut self) -> CatchPerformanceAttributes {
         let attributes = self
             .attributes
             .take()
@@ -306,7 +306,7 @@ impl<'m> FruitsPP<'m> {
             pp *= 0.9;
         }
 
-        FruitsPerformanceAttributes {
+        CatchPerformanceAttributes {
             difficulty: attributes,
             pp: pp as f64,
         }
@@ -343,22 +343,22 @@ impl<'m> FruitsPP<'m> {
     }
 }
 
-pub trait FruitsAttributeProvider {
-    fn attributes(self) -> Option<FruitsDifficultyAttributes>;
+pub trait CatchAttributeProvider {
+    fn attributes(self) -> Option<CatchDifficultyAttributes>;
 }
 
-impl FruitsAttributeProvider for FruitsDifficultyAttributes {
+impl CatchAttributeProvider for CatchDifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<FruitsDifficultyAttributes> {
+    fn attributes(self) -> Option<CatchDifficultyAttributes> {
         Some(self)
     }
 }
 
-impl FruitsAttributeProvider for DifficultyAttributes {
+impl CatchAttributeProvider for DifficultyAttributes {
     #[inline]
-    fn attributes(self) -> Option<FruitsDifficultyAttributes> {
+    fn attributes(self) -> Option<CatchDifficultyAttributes> {
         #[allow(irrefutable_let_patterns)]
-        if let Self::Fruits(attributes) = self {
+        if let Self::Catch(attributes) = self {
             Some(attributes)
         } else {
             None
@@ -366,9 +366,9 @@ impl FruitsAttributeProvider for DifficultyAttributes {
     }
 }
 
-impl FruitsAttributeProvider for PerformanceAttributes {
+impl CatchAttributeProvider for PerformanceAttributes {
     #[inline]
-    fn attributes(self) -> Option<FruitsDifficultyAttributes> {
+    fn attributes(self) -> Option<CatchDifficultyAttributes> {
         self.difficulty_attributes().attributes()
     }
 }

@@ -46,7 +46,7 @@ pub fn stars(
         other => panic!("can not calculate mania difficulty on a {:?} map", other),
     };
 
-    let clock_rate = mods.speed() as f32;
+    let clock_rate = mods.clock_rate() as f32;
     let section_len = SECTION_LEN * clock_rate;
     let mut strain = Strain::new(columns);
 

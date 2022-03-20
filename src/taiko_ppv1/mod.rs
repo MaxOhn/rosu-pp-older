@@ -31,7 +31,7 @@ pub fn stars(
         };
     }
 
-    let clock_rate = mods.speed() as f32;
+    let clock_rate = mods.clock_rate() as f32;
     let section_len = SECTION_LEN * clock_rate;
 
     // No strain for first object

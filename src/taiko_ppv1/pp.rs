@@ -10,23 +10,23 @@ use rosu_pp::{
 /// # Example
 ///
 /// ```
-/// # use rosu_pp::{TaikoPP, PpResult, Beatmap};
+/// # use rosu_pp::{TaikoPP, Beatmap};
 /// # /*
 /// let map: Beatmap = ...
 /// # */
 /// # let map = Beatmap::default();
-/// let pp_result: PpResult = TaikoPP::new(&map)
+/// let attrs = TaikoPP::new(&map)
 ///     .mods(8 + 64) // HDDT
 ///     .combo(1234)
 ///     .misses(1)
 ///     .accuracy(98.5)
 ///     .calculate();
 ///
-/// println!("PP: {} | Stars: {}", pp_result.pp(), pp_result.stars());
+/// println!("PP: {} | Stars: {}", attrs.pp(), attrs.stars());
 ///
 /// let next_result = TaikoPP::new(&map)
-///     .attributes(pp_result)  // reusing previous results for performance
-///     .mods(8 + 64)           // has to be the same to reuse attributes
+///     .attributes(attrs) // reusing previous results for performance
+///     .mods(8 + 64)      // has to be the same to reuse attributes
 ///     .accuracy(99.5)
 ///     .calculate();
 ///
@@ -230,7 +230,7 @@ impl<'m> TaikoPP<'m> {
             od *= 0.5;
         }
 
-        let hit_window = difficulty_range_od(od) / self.mods.speed() as f32;
+        let hit_window = difficulty_range_od(od) / self.mods.clock_rate() as f32;
 
         (150.0 / hit_window).powf(1.1)
             * self.acc.powi(15)

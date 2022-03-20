@@ -17,7 +17,7 @@ pub use pp::*;
 use slider_state::SliderState;
 
 use rosu_pp::{
-    fruits::FruitsDifficultyAttributes,
+    catch::CatchDifficultyAttributes,
     parse::{HitObjectKind, Pos2},
     Beatmap, Mods,
 };
@@ -39,15 +39,15 @@ pub fn stars(
     map: &Beatmap,
     mods: impl Mods,
     passed_objects: Option<usize>,
-) -> FruitsDifficultyAttributes {
+) -> CatchDifficultyAttributes {
     if map.hit_objects.len() < 2 {
-        return FruitsDifficultyAttributes::default();
+        return CatchDifficultyAttributes::default();
     }
 
     let take = passed_objects.unwrap_or(usize::MAX);
     let map_attributes = map.attributes().mods(mods);
 
-    let attributes = FruitsDifficultyAttributes {
+    let attributes = CatchDifficultyAttributes {
         ar: map_attributes.ar,
         ..Default::default()
     };
@@ -379,7 +379,7 @@ impl Iterator for FruitOrJuice {
 }
 
 pub(crate) struct FruitParams<'a> {
-    pub(crate) attributes: FruitsDifficultyAttributes,
+    pub(crate) attributes: CatchDifficultyAttributes,
     pub(crate) curve_bufs: CurveBuffers,
     pub(crate) last_pos: Option<f32>,
     pub(crate) last_time: f64,

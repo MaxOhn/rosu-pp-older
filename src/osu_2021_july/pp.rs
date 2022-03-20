@@ -10,23 +10,23 @@ use super::stars;
 /// # Example
 ///
 /// ```
-/// # use rosu_pp::{OsuPP, PpResult, Beatmap};
+/// # use rosu_pp::{OsuPP, Beatmap};
 /// # /*
 /// let map: Beatmap = ...
 /// # */
 /// # let map = Beatmap::default();
-/// let pp_result: PpResult = OsuPP::new(&map)
+/// let attrs = OsuPP::new(&map)
 ///     .mods(8 + 64) // HDDT
 ///     .combo(1234)
 ///     .misses(1)
 ///     .accuracy(98.5) // should be set last
 ///     .calculate();
 ///
-/// println!("PP: {} | Stars: {}", pp_result.pp(), pp_result.stars());
+/// println!("PP: {} | Stars: {}", attrs.pp(), attrs.stars());
 ///
 /// let next_result = OsuPP::new(&map)
-///     .attributes(pp_result)  // reusing previous results for performance
-///     .mods(8 + 64)           // has to be the same to reuse attributes
+///     .attributes(attrs) // reusing previous results for performance
+///     .mods(8 + 64)      // has to be the same to reuse attributes
 ///     .accuracy(99.5)
 ///     .calculate();
 ///
