@@ -1,6 +1,7 @@
-use super::{ControlPoint, ControlPointIter};
-
-use rosu_pp::Beatmap;
+use rosu_pp::{
+    beatmap::{ControlPoint, ControlPointIter},
+    Beatmap,
+};
 
 pub(crate) struct SliderState<'p> {
     control_points: ControlPointIter<'p>,
@@ -12,11 +13,11 @@ pub(crate) struct SliderState<'p> {
 impl<'p> SliderState<'p> {
     #[inline]
     pub(crate) fn new(map: &'p Beatmap) -> Self {
-        let mut control_points = ControlPointIter::new(map);
+        let mut control_points = map.control_points();
 
         let (beat_len, speed_mult) = match control_points.next() {
-            Some(ControlPoint::Timing { beat_len, .. }) => (beat_len, 1.0),
-            Some(ControlPoint::Difficulty { speed_mult, .. }) => (1000.0, speed_mult),
+            Some(ControlPoint::Timing(point)) => (point.beat_len as f32, 1.0),
+            Some(ControlPoint::Difficulty(point)) => (1000.0, point.speed_multiplier as f32),
             None => (1000.0, 1.0),
         };
 
@@ -30,70 +31,18 @@ impl<'p> SliderState<'p> {
 
     #[inline]
     pub(crate) fn update(&mut self, time: f32) {
-        while let Some(next) = self.next.as_ref().filter(|n| time >= n.time()) {
+        while let Some(next) = self.next.as_ref().filter(|n| time >= n.time() as f32) {
             match next {
-                ControlPoint::Timing { beat_len, .. } => {
-                    self.beat_len = *beat_len;
+                ControlPoint::Timing(timing) => {
+                    self.beat_len = timing.beat_len as f32;
                     self.speed_mult = 1.0;
                 }
-                ControlPoint::Difficulty { speed_mult, .. } => self.speed_mult = *speed_mult,
+                ControlPoint::Difficulty(difficulty) => {
+                    self.speed_mult = difficulty.speed_multiplier as f32
+                }
             }
 
             self.next = self.control_points.next();
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use rosu_pp::{
-        parse::{DifficultyPoint, TimingPoint},
-        Beatmap,
-    };
-
-    use super::SliderState;
-
-    #[test]
-    fn osu_slider_state() {
-        let map = Beatmap {
-            timing_points: vec![
-                TimingPoint {
-                    time: 1.0,
-                    beat_len: 10.0,
-                },
-                TimingPoint {
-                    time: 3.0,
-                    beat_len: 20.0,
-                },
-                TimingPoint {
-                    time: 4.0,
-                    beat_len: 30.0,
-                },
-            ],
-            difficulty_points: vec![
-                DifficultyPoint {
-                    time: 2.0,
-                    speed_multiplier: 15.0,
-                },
-                DifficultyPoint {
-                    time: 5.0,
-                    speed_multiplier: 45.0,
-                },
-            ],
-            ..Default::default()
-        };
-
-        let mut state = SliderState::new(&map);
-
-        state.update(2.0);
-        assert_eq!(state.beat_len, 10.0);
-
-        state.update(3.0);
-        assert_eq!(state.beat_len, 20.0);
-        assert_eq!(state.speed_mult, 1.0);
-
-        state.update(5.0);
-        assert_eq!(state.beat_len, 30.0);
-        assert_eq!(state.speed_mult, 45.0);
     }
 }

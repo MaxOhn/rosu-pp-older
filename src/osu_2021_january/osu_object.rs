@@ -40,6 +40,7 @@ impl OsuObject {
                 pixel_len,
                 repeats,
                 control_points,
+                ..
             } => {
                 let pixel_len = *pixel_len as f32;
 

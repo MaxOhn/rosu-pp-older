@@ -1,4 +1,3 @@
-mod control_point_iter;
 mod curve;
 mod difficulty_object;
 mod osu_object;

@@ -1,5 +1,4 @@
 mod catch_object;
-mod control_point_iter;
 mod curve;
 mod difficulty_object;
 mod movement;
@@ -9,7 +8,6 @@ mod slider_state;
 use std::{iter::Map, vec::IntoIter};
 
 use catch_object::CatchObject;
-use control_point_iter::{ControlPoint, ControlPointIter};
 use curve::Curve;
 use difficulty_object::DifficultyObject;
 use movement::Movement;
@@ -83,6 +81,7 @@ pub fn stars(
                 pixel_len,
                 repeats,
                 control_points,
+                ..
             } => {
                 // HR business
                 params.last_pos = Some(h.pos.x + control_points[control_points.len() - 1].pos.x);

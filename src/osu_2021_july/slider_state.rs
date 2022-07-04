@@ -1,6 +1,7 @@
-use rosu_pp::Beatmap;
-
-use super::control_point_iter::{ControlPoint, ControlPointIter};
+use rosu_pp::{
+    beatmap::{ControlPoint, ControlPointIter},
+    Beatmap,
+};
 
 pub(crate) struct SliderState<'p> {
     control_points: ControlPointIter<'p>,
@@ -12,11 +13,11 @@ pub(crate) struct SliderState<'p> {
 impl<'p> SliderState<'p> {
     #[inline]
     pub(crate) fn new(map: &'p Beatmap) -> Self {
-        let mut control_points = ControlPointIter::new(map);
+        let mut control_points = map.control_points();
 
         let (beat_len, speed_mult) = match control_points.next() {
-            Some(ControlPoint::Timing { beat_len, .. }) => (beat_len, 1.0),
-            Some(ControlPoint::Difficulty { speed_mult, .. }) => (1000.0, speed_mult),
+            Some(ControlPoint::Timing(point)) => (point.beat_len as f32, 1.0),
+            Some(ControlPoint::Difficulty(point)) => (1000.0, point.speed_multiplier as f32),
             None => (1000.0, 1.0),
         };
 
@@ -30,13 +31,13 @@ impl<'p> SliderState<'p> {
 
     #[inline]
     pub(crate) fn update(&mut self, time: f32) {
-        while let Some(next) = self.next.as_ref().filter(|n| time >= n.time()) {
+        while let Some(next) = self.next.as_ref().filter(|n| time >= n.time() as f32) {
             match next {
-                ControlPoint::Timing { beat_len, .. } => {
-                    self.beat_len = *beat_len;
+                ControlPoint::Timing(point) => {
+                    self.beat_len = point.beat_len as f32;
                     self.speed_mult = 1.0;
                 }
-                ControlPoint::Difficulty { speed_mult, .. } => self.speed_mult = *speed_mult,
+                ControlPoint::Difficulty(point) => self.speed_mult = point.speed_multiplier as f32,
             }
 
             self.next = self.control_points.next();

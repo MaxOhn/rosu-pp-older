@@ -1,6 +1,3 @@
-mod control_point_iter;
-use control_point_iter::{ControlPoint, ControlPointIter};
-
 mod curve;
 use curve::Curve;
 
