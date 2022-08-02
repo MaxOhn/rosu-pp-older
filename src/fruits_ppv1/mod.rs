@@ -33,17 +33,13 @@ const BASE_SCORING_DISTANCE: f64 = 100.0;
 /// Star calculation for osu!ctb maps
 ///
 /// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(
-    map: &Beatmap,
-    mods: impl Mods,
-    passed_objects: Option<usize>,
-) -> CatchDifficultyAttributes {
+pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> CatchDifficultyAttributes {
     if map.hit_objects.len() < 2 {
         return CatchDifficultyAttributes::default();
     }
 
     let take = passed_objects.unwrap_or(usize::MAX);
-    let map_attributes = map.attributes().mods(mods);
+    let map_attributes = map.attributes().mods(mods).build();
 
     let attributes = CatchDifficultyAttributes {
         ar: map_attributes.ar,

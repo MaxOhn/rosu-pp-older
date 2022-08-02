@@ -2,12 +2,9 @@
 //! This means the jump distance inbetween notes might be slightly off, resulting in small inaccuracies.
 //! Since calculating these offsets is relatively expensive though, this version is faster than `all_included`.
 
-use super::{
-    curve::CurveBuffers, difficulty_range_od, DifficultyObject, OsuObject, Skill, SkillKind,
-    SliderState,
-};
+use super::{curve::CurveBuffers, DifficultyObject, OsuObject, Skill, SkillKind, SliderState};
 
-use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap, Mods};
+use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap};
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -23,21 +20,14 @@ const NORMALIZED_RADIUS: f32 = 52.0;
 /// processing stack leniency is relatively expensive.
 ///
 /// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(
-    map: &Beatmap,
-    mods: impl Mods,
-    passed_objects: Option<usize>,
-) -> OsuDifficultyAttributes {
-    let take = passed_objects.unwrap_or_else(|| map.hit_objects.len());
+pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDifficultyAttributes {
+    let take = passed_objects.unwrap_or(map.hit_objects.len());
 
-    let map_attributes = map.attributes().mods(mods);
-    let hitwindow =
-        difficulty_range_od(map_attributes.od as f32).floor() / map_attributes.clock_rate as f32;
-    let od = (80.0 - hitwindow) / 6.0;
+    let map_attributes = map.attributes().mods(mods).build();
 
     let mut diff_attributes = OsuDifficultyAttributes {
         ar: map_attributes.ar,
-        od: od as f64,
+        od: map_attributes.od,
         ..Default::default()
     };
 

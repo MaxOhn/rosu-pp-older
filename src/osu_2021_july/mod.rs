@@ -13,7 +13,7 @@ use skill::Skill;
 use skill_kind::SkillKind;
 use slider_state::SliderState;
 
-use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap, Mods};
+use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap};
 
 use self::curve::CurveBuffers;
 
@@ -31,21 +31,14 @@ const NORMALIZED_RADIUS: f32 = 52.0;
 /// processing stack leniency is relatively expensive.
 ///
 /// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(
-    map: &Beatmap,
-    mods: impl Mods,
-    passed_objects: Option<usize>,
-) -> OsuDifficultyAttributes {
-    let take = passed_objects.unwrap_or_else(|| map.hit_objects.len());
+pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDifficultyAttributes {
+    let take = passed_objects.unwrap_or(map.hit_objects.len());
 
-    let map_attributes = map.attributes().mods(mods);
-    let hitwindow =
-        difficulty_range_od(map_attributes.od as f32).floor() / map_attributes.clock_rate as f32;
-    let od = (80.0 - hitwindow) / 6.0;
+    let map_attributes = map.attributes().mods(mods).build();
 
     let mut diff_attributes = OsuDifficultyAttributes {
         ar: map_attributes.ar,
-        od: od as f64,
+        od: map_attributes.od,
         ..Default::default()
     };
 
@@ -152,24 +145,4 @@ pub fn stars(
 
 fn lerp(start: f32, end: f32, percent: f32) -> f32 {
     start + (end - start) * percent
-}
-
-#[inline]
-fn difficulty_range(val: f32, max: f32, avg: f32, min: f32) -> f32 {
-    if val > 5.0 {
-        avg + (max - avg) * (val - 5.0) / 5.0
-    } else if val < 5.0 {
-        avg - (avg - min) * (5.0 - val) / 5.0
-    } else {
-        avg
-    }
-}
-
-const OSU_OD_MAX: f32 = 20.0;
-const OSU_OD_AVG: f32 = 50.0;
-const OSU_OD_MIN: f32 = 80.0;
-
-#[inline]
-fn difficulty_range_od(od: f32) -> f32 {
-    difficulty_range(od, OSU_OD_MAX, OSU_OD_AVG, OSU_OD_MIN)
 }
