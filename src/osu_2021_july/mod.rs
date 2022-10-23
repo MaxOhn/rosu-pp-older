@@ -4,16 +4,14 @@ mod osu_object;
 mod pp;
 mod skill;
 mod skill_kind;
-mod slider_state;
 
 use difficulty_object::DifficultyObject;
 use osu_object::OsuObject;
 pub use pp::{OsuAttributeProvider, OsuPP};
 use skill::Skill;
 use skill_kind::SkillKind;
-use slider_state::SliderState;
 
-use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap};
+use rosu_pp::Beatmap;
 
 use self::curve::CurveBuffers;
 
@@ -54,7 +52,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
         scaling_factor *= 1.0 + small_circle_bonus;
     }
 
-    let mut slider_state = SliderState::new(map);
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
@@ -70,7 +67,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
                 scaling_factor,
                 &mut ticks_buf,
                 &mut diff_attributes,
-                &mut slider_state,
                 &mut curve_bufs,
             )
         })
@@ -145,4 +141,27 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
 
 fn lerp(start: f32, end: f32, percent: f32) -> f32 {
     start + (end - start) * percent
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct OsuDifficultyAttributes {
+    pub aim_strain: f64,
+    pub speed_strain: f64,
+    pub ar: f64,
+    pub od: f64,
+    pub hp: f64,
+    pub n_circles: usize,
+    pub n_sliders: usize,
+    pub n_spinners: usize,
+    pub stars: f64,
+    pub max_combo: usize,
+}
+
+pub struct OsuPerformanceAttributes {
+    pub difficulty: OsuDifficultyAttributes,
+    pub pp: f64,
+    pub pp_acc: f64,
+    pub pp_aim: f64,
+    pub pp_flashlight: f64,
+    pub pp_speed: f64,
 }

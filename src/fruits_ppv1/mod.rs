@@ -3,7 +3,6 @@ mod curve;
 mod difficulty_object;
 mod movement;
 mod pp;
-mod slider_state;
 
 use std::{iter::Map, vec::IntoIter};
 
@@ -12,7 +11,6 @@ use curve::Curve;
 use difficulty_object::DifficultyObject;
 use movement::Movement;
 pub use pp::*;
-use slider_state::SliderState;
 
 use rosu_pp::{
     catch::CatchDifficultyAttributes,
@@ -51,8 +49,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> CatchDi
         curve_bufs: CurveBuffers::default(),
         last_pos: None,
         last_time: 0.0,
-        map,
-        slider_state: SliderState::new(map),
         ticks: Vec::new(), // using the same buffer for all sliders
         with_hr: mods.hr(),
     };
@@ -83,27 +79,25 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> CatchDi
                 params.last_pos = Some(h.pos.x + control_points[control_points.len() - 1].pos.x);
                 params.last_time = h.start_time;
 
-                // Responsible for timing point values
-                params.slider_state.update(h.start_time as f32);
-
                 let span_count = (*repeats + 1) as f64;
 
-                let mut tick_dist = 100.0 * params.map.slider_mult / params.map.tick_rate;
+                let mut tick_dist = 100.0 * map.slider_mult / map.tick_rate;
 
-                if params.map.version >= 8 {
-                    tick_dist /= (100.0 / params.slider_state.speed_mult as f64)
-                        .max(10.0)
-                        .min(1000.0)
-                        / 100.0;
+                let timing_point = map.timing_point_at(h.start_time);
+
+                let difficulty_point = map.difficulty_point_at(h.start_time).unwrap_or_default();
+
+                if map.version >= 8 {
+                    tick_dist /=
+                        (100.0 / difficulty_point.slider_vel).max(10.0).min(1000.0) / 100.0;
                 }
 
                 // Build the curve w.r.t. the control points
                 let curve = Curve::new(control_points, *pixel_len, &mut params.curve_bufs);
 
-                let velocity = (BASE_SCORING_DISTANCE
-                    * params.map.slider_mult
-                    * params.slider_state.speed_mult as f64)
-                    / params.slider_state.beat_len as f64;
+                let velocity =
+                    (BASE_SCORING_DISTANCE * map.slider_mult * difficulty_point.slider_vel as f64)
+                        / timing_point.beat_len as f64;
 
                 let end_time = h.start_time + span_count * curve.dist() / velocity;
                 let duration = end_time - h.start_time;
@@ -119,9 +113,10 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> CatchDi
                 let min_dist_from_end = velocity * 10.0;
 
                 let mut curr_dist = tick_dist;
-                let time_add = duration * tick_dist / (*pixel_len * span_count);
+                let pixel_len = pixel_len.unwrap_or(0.0);
+                let time_add = duration * tick_dist / (pixel_len * span_count);
 
-                let target = *pixel_len - tick_dist / 8.0;
+                let target = pixel_len - tick_dist / 8.0;
 
                 params.ticks.reserve((target / tick_dist) as usize);
 
@@ -373,13 +368,11 @@ impl Iterator for FruitOrJuice {
     }
 }
 
-pub(crate) struct FruitParams<'a> {
+pub(crate) struct FruitParams {
     pub(crate) attributes: CatchDifficultyAttributes,
     pub(crate) curve_bufs: CurveBuffers,
     pub(crate) last_pos: Option<f32>,
     pub(crate) last_time: f64,
-    pub(crate) map: &'a Beatmap,
-    pub(crate) slider_state: SliderState<'a>,
     pub(crate) ticks: Vec<(Pos2, f64)>,
     pub(crate) with_hr: bool,
 }

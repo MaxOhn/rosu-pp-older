@@ -1,9 +1,6 @@
-use super::stars;
+use super::{stars, TaikoDifficultyAttributes, TaikoPerformanceAttributes};
 
-use rosu_pp::{
-    taiko::{TaikoDifficultyAttributes, TaikoPerformanceAttributes},
-    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
-};
+use rosu_pp::{Beatmap, DifficultyAttributes, Mods, PerformanceAttributes};
 
 /// Calculator for pp on osu!taiko maps.
 ///
@@ -274,6 +271,13 @@ impl TaikoAttributeProvider for TaikoDifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
         Some(self.stars as f32)
+    }
+}
+
+impl TaikoAttributeProvider for TaikoPerformanceAttributes {
+    #[inline]
+    fn attributes(self) -> Option<f32> {
+        Some(self.difficulty.stars as f32)
     }
 }
 

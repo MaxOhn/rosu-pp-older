@@ -4,7 +4,7 @@ mod strain;
 pub use pp::*;
 use strain::Strain;
 
-use rosu_pp::{mania::ManiaDifficultyAttributes, parse::HitObject, Beatmap, Mods};
+use rosu_pp::{parse::HitObject, Beatmap, Mods};
 
 const SECTION_LEN: f32 = 400.0;
 const STAR_SCALING_FACTOR: f32 = 0.018;
@@ -17,7 +17,7 @@ pub fn stars(
     mods: impl Mods,
     passed_objects: Option<usize>,
 ) -> ManiaDifficultyAttributes {
-    let take = passed_objects.unwrap_or_else(|| map.hit_objects.len());
+    let take = passed_objects.unwrap_or(map.hit_objects.len());
 
     if take < 2 {
         return ManiaDifficultyAttributes::default();
@@ -88,4 +88,16 @@ impl<'o> DifficultyHitObject<'o> {
             delta: (base.start_time as f32 - prev.start_time as f32) / clock_rate,
         }
     }
+}
+
+#[derive(Default)]
+pub struct ManiaDifficultyAttributes {
+    pub stars: f64,
+}
+
+pub struct ManiaPerformanceAttributes {
+    pub difficulty: ManiaDifficultyAttributes,
+    pub pp: f64,
+    pub pp_acc: f64,
+    pub pp_strain: f64,
 }

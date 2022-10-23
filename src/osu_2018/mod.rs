@@ -16,10 +16,6 @@ use skill::Skill;
 mod skill_kind;
 use skill_kind::SkillKind;
 
-mod slider_state;
-use slider_state::SliderState;
-
 mod stars;
-use stars::stars;
 
 use rosu_pp::{Beatmap, Mods};

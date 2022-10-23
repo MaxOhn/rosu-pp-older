@@ -1,7 +1,6 @@
-use super::{curve::CurveBuffers, Curve, SliderState};
+use super::{curve::CurveBuffers, stars::OsuDifficultyAttributes, Curve};
 
 use rosu_pp::{
-    osu::OsuDifficultyAttributes,
     parse::{HitObject, HitObjectKind, Pos2},
     Beatmap,
 };
@@ -24,7 +23,6 @@ impl OsuObject {
         scaling_factor: f32,
         ticks: &mut Vec<f32>,
         attributes: &mut OsuDifficultyAttributes,
-        slider_state: &mut SliderState,
         curve_bufs: &mut CurveBuffers,
     ) -> Option<Self> {
         attributes.max_combo += 1; // hitcircle, slider head, or spinner
@@ -46,30 +44,31 @@ impl OsuObject {
                 control_points,
                 ..
             } => {
-                let pixel_len = *pixel_len as f32;
+                let timing_point = map.timing_point_at(h.start_time);
+                let difficulty_point = map.difficulty_point_at(h.start_time).unwrap_or_default();
 
                 // Key values which are computed here
                 let mut end_pos = h.pos;
                 let mut travel_dist = 0.0;
 
-                // Responsible for timing point values
-                slider_state.update(h.start_time as f32);
-
                 let approx_follow_circle_radius = radius * 3.0;
                 let mut tick_distance = 100.0 * map.slider_mult as f32 / map.tick_rate as f32;
 
                 if map.version >= 8 {
-                    tick_distance /=
-                        (100.0 / slider_state.speed_mult).max(10.0).min(1000.0) / 100.0;
+                    tick_distance /= (100.0 / difficulty_point.slider_vel as f32)
+                        .max(10.0)
+                        .min(1000.0)
+                        / 100.0;
                 }
 
-                let duration = *repeats as f32 * slider_state.beat_len * pixel_len
-                    / (map.slider_mult as f32 * slider_state.speed_mult)
+                // Build the curve w.r.t. the curve points
+                let curve = Curve::new(control_points, *pixel_len, curve_bufs);
+
+                let pixel_len = pixel_len.unwrap_or(0.0) as f32;
+                let duration = *repeats as f32 * timing_point.beat_len as f32 * pixel_len
+                    / (map.slider_mult as f32 * difficulty_point.slider_vel as f32)
                     / 100.0;
                 let span_duration = duration / *repeats as f32;
-
-                // Build the curve w.r.t. the curve points
-                let curve = Curve::new(control_points, pixel_len as f64, curve_bufs);
 
                 // Called on each slider object except for the head.
                 // Increases combo and adjusts `end_pos` and `travel_dist`

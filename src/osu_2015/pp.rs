@@ -1,9 +1,7 @@
-use rosu_pp::{
-    osu::{OsuDifficultyAttributes, OsuPerformanceAttributes},
-    DifficultyAttributes, PerformanceAttributes,
+use super::{
+    stars::{stars, OsuDifficultyAttributes, OsuPerformanceAttributes},
+    Beatmap, Mods,
 };
-
-use super::{stars, Beatmap, Mods};
 
 /// Calculator for pp on osu!standard maps.
 ///
@@ -142,9 +140,7 @@ impl<'m> OsuPP<'m> {
     /// Be sure to set `misses` beforehand!
     /// In case of a partial play, be also sure to set `passed_objects` beforehand!
     pub fn accuracy(mut self, acc: f32) -> Self {
-        let n_objects = self
-            .passed_objects
-            .unwrap_or_else(|| self.map.hit_objects.len());
+        let n_objects = self.passed_objects.unwrap_or(self.map.hit_objects.len());
 
         let acc = acc / 100.0;
 
@@ -203,9 +199,7 @@ impl<'m> OsuPP<'m> {
 
     fn assert_hitresults(&mut self) {
         if self.acc.is_none() {
-            let n_objects = self
-                .passed_objects
-                .unwrap_or_else(|| self.map.hit_objects.len());
+            let n_objects = self.passed_objects.unwrap_or(self.map.hit_objects.len());
 
             let remaining = n_objects
                 .saturating_sub(self.n300.unwrap_or(0))
@@ -423,9 +417,7 @@ impl<'m> OsuPP<'m> {
 
     #[inline]
     fn total_hits(&self) -> usize {
-        let n_objects = self
-            .passed_objects
-            .unwrap_or_else(|| self.map.hit_objects.len());
+        let n_objects = self.passed_objects.unwrap_or(self.map.hit_objects.len());
 
         (self.n300.unwrap_or(0) + self.n100.unwrap_or(0) + self.n50.unwrap_or(0) + self.n_misses)
             .min(n_objects)
@@ -443,21 +435,10 @@ impl OsuAttributeProvider for OsuDifficultyAttributes {
     }
 }
 
-impl OsuAttributeProvider for DifficultyAttributes {
+impl OsuAttributeProvider for OsuPerformanceAttributes {
     #[inline]
     fn attributes(self) -> Option<OsuDifficultyAttributes> {
-        if let Self::Osu(attributes) = self {
-            Some(attributes)
-        } else {
-            None
-        }
-    }
-}
-
-impl OsuAttributeProvider for PerformanceAttributes {
-    #[inline]
-    fn attributes(self) -> Option<OsuDifficultyAttributes> {
-        self.difficulty_attributes().attributes()
+        Some(self.difficulty)
     }
 }
 

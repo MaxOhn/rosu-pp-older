@@ -354,6 +354,13 @@ impl CatchAttributeProvider for CatchDifficultyAttributes {
     }
 }
 
+impl CatchAttributeProvider for CatchPerformanceAttributes {
+    #[inline]
+    fn attributes(self) -> Option<CatchDifficultyAttributes> {
+        Some(self.difficulty)
+    }
+}
+
 impl CatchAttributeProvider for DifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<CatchDifficultyAttributes> {

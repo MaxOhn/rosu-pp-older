@@ -7,7 +7,7 @@ use difficulty_object::DifficultyObject;
 pub use pp::*;
 use strain::Strain;
 
-use rosu_pp::{taiko::TaikoDifficultyAttributes, Beatmap, Mods};
+use rosu_pp::{Beatmap, Mods};
 
 const SECTION_LEN: f32 = 400.0;
 
@@ -21,7 +21,7 @@ pub fn stars(
     mods: impl Mods,
     passed_objects: Option<usize>,
 ) -> TaikoDifficultyAttributes {
-    let take = passed_objects.unwrap_or_else(|| map.hit_objects.len());
+    let take = passed_objects.unwrap_or(map.hit_objects.len());
     let max_combo = map.n_circles as usize;
 
     if take < 2 {
@@ -75,4 +75,22 @@ pub fn stars(
     let stars = (strain.difficulty_value() * STAR_SCALING_FACTOR) as f64;
 
     TaikoDifficultyAttributes { stars, max_combo }
+}
+
+pub struct TaikoDifficultyAttributes {
+    /// The final star rating.
+    pub stars: f64,
+    /// The maximum combo.
+    pub max_combo: usize,
+}
+
+pub struct TaikoPerformanceAttributes {
+    /// The difficulty attributes that were used for the performance calculation
+    pub difficulty: TaikoDifficultyAttributes,
+    /// The final performance points.
+    pub pp: f64,
+    /// The accuracy portion of the final pp.
+    pub pp_acc: f64,
+    /// The strain portion of the final pp.
+    pub pp_strain: f64,
 }

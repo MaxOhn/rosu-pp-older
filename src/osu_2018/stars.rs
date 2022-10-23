@@ -2,9 +2,9 @@
 //! This means the jump distance inbetween notes might be slightly off, resulting in small inaccuracies.
 //! Since calculating these offsets is relatively expensive though, this version is faster than `all_included`.
 
-use super::{curve::CurveBuffers, DifficultyObject, OsuObject, Skill, SkillKind, SliderState};
+use super::{curve::CurveBuffers, DifficultyObject, OsuObject, Skill, SkillKind};
 
-use rosu_pp::{osu::OsuDifficultyAttributes, Beatmap};
+use rosu_pp::Beatmap;
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -44,7 +44,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
         scaling_factor *= 1.0 + small_circle_bonus;
     }
 
-    let mut slider_state = SliderState::new(map);
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
@@ -56,7 +55,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
             scaling_factor,
             &mut ticks_buf,
             &mut diff_attributes,
-            &mut slider_state,
             &mut curve_bufs,
         )
     });
@@ -120,4 +118,27 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     diff_attributes.aim_strain = aim_strain as f64;
 
     diff_attributes
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct OsuDifficultyAttributes {
+    pub aim_strain: f64,
+    pub speed_strain: f64,
+    pub ar: f64,
+    pub od: f64,
+    pub hp: f64,
+    pub n_circles: usize,
+    pub n_sliders: usize,
+    pub n_spinners: usize,
+    pub stars: f64,
+    pub max_combo: usize,
+}
+
+pub struct OsuPerformanceAttributes {
+    pub difficulty: OsuDifficultyAttributes,
+    pub pp: f64,
+    pub pp_acc: f64,
+    pub pp_aim: f64,
+    pub pp_flashlight: f64,
+    pub pp_speed: f64,
 }

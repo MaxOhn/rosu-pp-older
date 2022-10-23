@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cmp::Ordering, convert::identity, f32::consts::PI, iter};
+use std::{borrow::Cow, cmp::Ordering, convert::identity, f64::consts::PI, iter};
 
 use rosu_pp::parse::{PathControlPoint, PathType, Pos2};
 
@@ -6,18 +6,20 @@ const BEZIER_TOLERANCE: f32 = 0.25;
 const CATMULL_DETAIL: usize = 50;
 const CIRCULAR_ARC_TOLERANCE: f32 = 0.1;
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct CurveBuffers {
+    path: Vec<Pos2>,
+    lengths: Vec<f64>,
     vertices: Vec<Pos2>,
     bezier: BezierBuffers,
 }
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 struct BezierBuffers {
-    buf1: Vec<Pos2>,
-    buf2: Vec<Pos2>,
-    buf3: Vec<Pos2>,
-    buf4: Vec<Pos2>,
+    left: Vec<Pos2>,
+    right: Vec<Pos2>,
+    midpoints: Vec<Pos2>,
+    left_child: Vec<Pos2>,
 }
 
 impl BezierBuffers {
@@ -25,19 +27,19 @@ impl BezierBuffers {
     /// length of `len` is reached. Does nothing if `len`
     /// is already smaller than the current buffer size.
     fn extend_exact(&mut self, len: usize) {
-        if len <= self.buf1.len() {
+        if len <= self.left.len() {
             return;
         }
 
-        let additional = len - self.buf1.len();
+        let additional = len - self.left.len();
 
-        self.buf1
+        self.left
             .extend(iter::repeat(Pos2::zero()).take(additional));
-        self.buf2
+        self.right
             .extend(iter::repeat(Pos2::zero()).take(additional));
-        self.buf3
+        self.midpoints
             .extend(iter::repeat(Pos2::zero()).take(additional));
-        self.buf4
+        self.left_child
             .extend(iter::repeat(Pos2::zero()).take(additional));
     }
 }
@@ -50,21 +52,24 @@ struct CircularArcProperties {
     centre: Pos2,
 }
 
-pub(crate) struct Curve {
-    path: Vec<Pos2>,
-    lengths: Vec<f64>,
+pub(crate) struct Curve<'bufs> {
+    path: &'bufs [Pos2],
+    lengths: &'bufs [f64],
 }
 
-impl Curve {
+impl<'bufs> Curve<'bufs> {
     pub(crate) fn new(
         points: &[PathControlPoint],
-        expected_len: f64,
-        bufs: &mut CurveBuffers,
+        expected_len: Option<f64>,
+        bufs: &'bufs mut CurveBuffers,
     ) -> Self {
-        let mut path = Self::calculate_path(points, bufs);
-        let lengths = Self::calculate_length(points, &mut path, expected_len);
+        Self::calculate_path(points, bufs);
+        Self::calculate_length(points, bufs, expected_len);
 
-        Self { path, lengths }
+        Self {
+            path: &bufs.path,
+            lengths: &bufs.lengths,
+        }
     }
 
     pub(crate) fn position_at(&self, progress: f64) -> Pos2 {
@@ -117,17 +122,23 @@ impl Curve {
         p0 + (p1 - p0) * w as f32
     }
 
-    fn calculate_path(points: &[PathControlPoint], bufs: &mut CurveBuffers) -> Vec<Pos2> {
+    fn calculate_path(points: &[PathControlPoint], bufs: &mut CurveBuffers) {
+        bufs.path.clear();
+
         if points.is_empty() {
-            return Vec::new();
+            return;
         }
 
-        let CurveBuffers { vertices, bezier } = bufs;
+        let CurveBuffers {
+            vertices,
+            bezier,
+            path,
+            ..
+        } = bufs;
 
         vertices.clear();
         vertices.extend(points.iter().map(|p| p.pos));
 
-        let mut path = Vec::new();
         let mut start = 0;
 
         for i in 0..points.len() {
@@ -139,24 +150,29 @@ impl Curve {
             let segment_vertices = &vertices[start..i + 1];
             let segment_kind = points[start].kind.unwrap_or(PathType::Linear);
 
-            Self::calculate_subpath(&mut path, segment_vertices, segment_kind, bezier);
+            Self::calculate_subpath(path, segment_vertices, segment_kind, bezier);
 
             // * Start the new segment at the current vertex
             start = i;
         }
 
         path.dedup();
-
-        path
     }
 
     fn calculate_length(
         points: &[PathControlPoint],
-        path: &mut Vec<Pos2>,
-        expected_len: f64,
-    ) -> Vec<f64> {
+        bufs: &mut CurveBuffers,
+        expected_len: Option<f64>,
+    ) {
+        let CurveBuffers {
+            path,
+            lengths: cumulative_len,
+            ..
+        } = bufs;
+
+        cumulative_len.clear();
         let mut calculated_len = 0.0;
-        let mut cumulative_len = Vec::with_capacity(path.len());
+        cumulative_len.reserve(path.len());
         cumulative_len.push(0.0);
 
         let length_iter = path.iter().zip(path.iter().skip(1)).map(|(&curr, &next)| {
@@ -167,7 +183,7 @@ impl Curve {
 
         cumulative_len.extend(length_iter);
 
-        if (expected_len - calculated_len).abs() > f64::EPSILON {
+        if let Some(expected_len) = expected_len.filter(|&len| calculated_len != len) {
             // * In osu-stable, if the last two control points of a slider are equal, extension is not performed
             let condition_opt = points
                 .len()
@@ -178,7 +194,12 @@ impl Curve {
             if condition_opt.is_some() {
                 cumulative_len.push(calculated_len);
 
-                return cumulative_len;
+                return;
+            }
+
+            // Shortcut when it's just (0,0) since there's nothing to do anyway
+            if cumulative_len.len() == 1 {
+                return;
             }
 
             // * The last length is always incorrect
@@ -201,7 +222,7 @@ impl Curve {
                     // * Perhaps negative path lengths should be disallowed altogether
                     cumulative_len.push(0.0);
 
-                    return cumulative_len;
+                    return;
                 }
             }
 
@@ -214,8 +235,6 @@ impl Curve {
             path[end_idx] = path[prev_idx] + dir * (expected_len - cumulative_len[prev_idx]) as f32;
             cumulative_len.push(expected_len);
         }
-
-        cumulative_len
     }
 
     fn calculate_subpath(
@@ -331,7 +350,12 @@ impl Curve {
         // * <a href="https://en.wikipedia.org/wiki/Depth-first_search">Depth-first search</a>
         // * over the tree resulting from the subdivisions we make.)
 
-        // bufs.buf4 will serve as left_child
+        let BezierBuffers {
+            left,
+            right,
+            midpoints,
+            left_child,
+        } = bufs;
 
         while let Some(mut parent) = to_flatten.pop() {
             if Self::bezier_is_flat_enough(&parent) {
@@ -339,7 +363,7 @@ impl Curve {
                 // * an extension to De Casteljau's algorithm to obtain a piecewise-linear approximation
                 // * of the bezier curve represented by our control points, consisting of the same amount
                 // * of points as there are control points.
-                Self::bezier_approximate(&parent, path, bufs);
+                Self::bezier_approximate(&parent, path, left, right, midpoints);
                 free_bufs.push(parent);
 
                 continue;
@@ -351,15 +375,10 @@ impl Curve {
                 .pop()
                 .unwrap_or_else(|| Cow::Owned(vec![Pos2::zero(); p]));
 
-            Self::bezier_subdivide(
-                &parent,
-                &mut bufs.buf4,
-                right_child.to_mut(),
-                &mut bufs.buf1,
-            );
+            Self::bezier_subdivide(&parent, left_child, right_child.to_mut(), midpoints);
 
             // * We re-use the buffer of the parent for one of the children, so that we save one allocation per iteration.
-            parent.to_mut().copy_from_slice(&bufs.buf4[..p]);
+            parent.to_mut().copy_from_slice(&left_child[..p]);
 
             to_flatten.push(right_child);
             to_flatten.push(parent);
@@ -396,15 +415,14 @@ impl Curve {
     }
 
     // * https://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm
-    fn bezier_approximate(points: &[Pos2], path: &mut Vec<Pos2>, bufs: &mut BezierBuffers) {
+    fn bezier_approximate(
+        points: &[Pos2],
+        path: &mut Vec<Pos2>,
+        l: &mut [Pos2],
+        r: &mut [Pos2],
+        midpoints: &mut [Pos2],
+    ) {
         let count = points.len();
-
-        let BezierBuffers {
-            buf1: l,
-            buf2: r,
-            buf3: midpoints,
-            ..
-        } = bufs;
 
         Self::bezier_subdivide(points, l, r, midpoints);
         path.push(points[0]);
@@ -437,30 +455,28 @@ impl Curve {
 
         let catmull_detail = CATMULL_DETAIL as f32;
 
-        let subpath = (0..CATMULL_DETAIL)
-            .map(|c| {
-                let c = c as f32;
-                let t1 = c / catmull_detail;
-                let t2 = t1 * t1;
-                let t3 = t2 * t1;
+        let subpath = (0..CATMULL_DETAIL).flat_map(|c| {
+            let c = c as f32;
+            let t1 = c / catmull_detail;
+            let t2 = t1 * t1;
+            let t3 = t2 * t1;
 
-                let pos1 = Pos2 {
-                    x: 0.5 * (x1 + x2 * t1 + x3 * t2 + x4 * t3),
-                    y: 0.5 * (y1 + y2 * t1 + y3 * t2 + y4 * t3),
-                };
+            let pos1 = Pos2 {
+                x: 0.5 * (x1 + x2 * t1 + x3 * t2 + x4 * t3),
+                y: 0.5 * (y1 + y2 * t1 + y3 * t2 + y4 * t3),
+            };
 
-                let t1 = (c + 1.0) / catmull_detail;
-                let t2 = t1 * t1;
-                let t3 = t2 * t1;
+            let t1 = (c + 1.0) / catmull_detail;
+            let t2 = t1 * t1;
+            let t3 = t2 * t1;
 
-                let pos2 = Pos2 {
-                    x: 0.5 * (x1 + x2 * t1 + x3 * t2 + x4 * t3),
-                    y: 0.5 * (y1 + y2 * t1 + y3 * t2 + y4 * t3),
-                };
+            let pos2 = Pos2 {
+                x: 0.5 * (x1 + x2 * t1 + x3 * t2 + x4 * t3),
+                y: 0.5 * (y1 + y2 * t1 + y3 * t2 + y4 * t3),
+            };
 
-                iter::once(pos1).chain(iter::once(pos2))
-            })
-            .flatten();
+            iter::once(pos1).chain(iter::once(pos2))
+        });
 
         path.extend(subpath);
     }
@@ -488,8 +504,8 @@ impl Curve {
 
         let radius = d_a.length();
 
-        let theta_start = d_a.y.atan2(d_a.x);
-        let mut theta_end = d_c.y.atan2(d_c.x);
+        let theta_start = (d_a.y as f64).atan2(d_a.x as f64);
+        let mut theta_end = (d_c.y as f64).atan2(d_c.x as f64);
 
         while theta_end < theta_start {
             theta_end += 2.0 * PI;
@@ -513,8 +529,8 @@ impl Curve {
         }
 
         Some(CircularArcProperties {
-            theta_start: theta_start as f64,
-            theta_range: theta_range as f64,
+            theta_start,
+            theta_range,
             direction,
             radius,
             centre,

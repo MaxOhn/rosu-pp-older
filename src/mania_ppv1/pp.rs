@@ -1,9 +1,6 @@
-use super::stars;
+use super::{stars, ManiaDifficultyAttributes, ManiaPerformanceAttributes};
 
-use rosu_pp::{
-    mania::{ManiaDifficultyAttributes, ManiaPerformanceAttributes},
-    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
-};
+use rosu_pp::{Beatmap, DifficultyAttributes, Mods, PerformanceAttributes};
 
 /// Calculator for pp on osu!mania maps.
 ///
@@ -215,6 +212,13 @@ impl ManiaAttributeProvider for ManiaDifficultyAttributes {
     #[inline]
     fn attributes(self) -> Option<f32> {
         Some(self.stars as f32)
+    }
+}
+
+impl ManiaAttributeProvider for ManiaPerformanceAttributes {
+    #[inline]
+    fn attributes(self) -> Option<f32> {
+        Some(self.difficulty.stars as f32)
     }
 }
 
