@@ -75,9 +75,10 @@ impl Movement {
             .last_player_position
             .unwrap_or(current.last_normalized_pos);
 
-        let mut pos = last_player_pos
-            .max(current.normalized_pos - POSITION_EPSILON)
-            .min(current.normalized_pos + POSITION_EPSILON);
+        let mut pos = last_player_pos.clamp(
+            current.normalized_pos - POSITION_EPSILON,
+            current.normalized_pos + POSITION_EPSILON,
+        );
 
         let dist_moved = pos - last_player_pos;
 

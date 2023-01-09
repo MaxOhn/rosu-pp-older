@@ -131,7 +131,7 @@ impl<'m> ManiaPP<'m> {
         }
 
         let hit_window = {
-            let mut od = 34.0 + 3.0 * (10.0 - self.map.od).max(0.0).min(10.0);
+            let mut od = 34.0 + 3.0 * (10.0 - self.map.od).clamp(0.0, 10.0);
 
             if ez {
                 od *= 1.4;

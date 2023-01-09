@@ -81,7 +81,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
         scaling_factor,
     );
 
-    while h.base.time as f32 > current_section_end {
+    while h.base.time > current_section_end {
         current_section_end += section_len;
     }
 

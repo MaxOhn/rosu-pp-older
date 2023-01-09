@@ -253,7 +253,7 @@ impl<'m> OsuPP<'m> {
         // SO penalty
         if self.mods.so() {
             let n_spinners = self.attributes.as_ref().unwrap().n_spinners;
-            multiplier *= 1.0 - (n_spinners as f32 / total_hits as f32).powf(0.85);
+            multiplier *= 1.0 - (n_spinners as f32 / total_hits).powf(0.85);
         }
 
         let aim_value = self.compute_aim_value(total_hits);
@@ -374,7 +374,7 @@ impl<'m> OsuPP<'m> {
             .acc
             .unwrap()
             .powf((14.5 - attributes.od.max(8.0)) as f32 / 2.0);
-        speed_value *= od_factor as f32 * acc_factor as f32;
+        speed_value *= od_factor as f32 * acc_factor;
 
         // Penalize n50s
         speed_value *= 0.98_f32.powf(
@@ -400,7 +400,7 @@ impl<'m> OsuPP<'m> {
             1.52163_f32.powf(attributes.od as f32) * better_acc_percentage.powi(24) * 2.83;
 
         // Bonus for many hitcircles
-        acc_value *= ((n_circles as f32 / 1000.0).powf(0.3)).min(1.15);
+        acc_value *= ((n_circles / 1000.0).powf(0.3)).min(1.15);
 
         // HD bonus
         if self.mods.hd() {

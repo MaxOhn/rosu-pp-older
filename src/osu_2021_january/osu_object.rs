@@ -51,10 +51,8 @@ impl OsuObject {
                 let mut tick_distance = 100.0 * map.slider_mult as f32 / map.tick_rate as f32;
 
                 if map.version >= 8 {
-                    tick_distance /= (100.0 / difficulty_point.slider_vel as f32)
-                        .max(10.0)
-                        .min(1000.0)
-                        / 100.0;
+                    tick_distance /=
+                        (100.0 / difficulty_point.slider_vel as f32).clamp(10.0, 1000.0) / 100.0;
                 }
 
                 // Build the curve w.r.t. the curve points

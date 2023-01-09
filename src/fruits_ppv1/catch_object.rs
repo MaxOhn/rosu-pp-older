@@ -83,7 +83,7 @@ impl CatchObject {
             *last_excess = half_catcher_width;
         } else {
             self.hyper_dist = hyper_dist;
-            *last_excess = hyper_dist.max(0.0).min(half_catcher_width);
+            *last_excess = hyper_dist.clamp(0.0, half_catcher_width);
         }
 
         *last_direction = this_direction;

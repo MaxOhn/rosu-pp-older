@@ -309,7 +309,7 @@ impl<'m> OsuPP<'m> {
         } else if attributes.ar < 8.0 {
             ar_factor += 0.01 * (8.0 - attributes.ar as f32);
         }
-        aim_value *= 1.0 + ar_factor.min(ar_factor * total_hits / 1000.0) as f32;
+        aim_value *= 1.0 + ar_factor.min(ar_factor * total_hits / 1000.0);
 
         // HD bonus
         if self.mods.hd() {
@@ -398,7 +398,7 @@ impl<'m> OsuPP<'m> {
             1.52163_f32.powf(attributes.od as f32) * better_acc_percentage.powi(24) * 2.83;
 
         // Bonus for many hitcircles
-        acc_value *= ((n_circles as f32 / 1000.0).powf(0.3)).min(1.15);
+        acc_value *= ((n_circles / 1000.0).powf(0.3)).min(1.15);
 
         // HD bonus
         if self.mods.hd() {

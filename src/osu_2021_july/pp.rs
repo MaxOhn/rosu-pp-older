@@ -408,7 +408,7 @@ impl<'m> OsuPP<'m> {
             1.52163_f32.powf(attributes.od as f32) * better_acc_percentage.powi(24) * 2.83;
 
         // Bonus for many hitcircles
-        acc_value *= ((n_circles as f32 / 1000.0).powf(0.3)).min(1.15);
+        acc_value *= ((n_circles / 1000.0).powf(0.3)).min(1.15);
 
         // HD bonus
         if self.mods.hd() {

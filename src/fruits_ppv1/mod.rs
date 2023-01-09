@@ -88,16 +88,15 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> CatchDi
                 let difficulty_point = map.difficulty_point_at(h.start_time).unwrap_or_default();
 
                 if map.version >= 8 {
-                    tick_dist /=
-                        (100.0 / difficulty_point.slider_vel).max(10.0).min(1000.0) / 100.0;
+                    tick_dist /= (100.0 / difficulty_point.slider_vel).clamp(10.0, 1000.0) / 100.0;
                 }
 
                 // Build the curve w.r.t. the control points
                 let curve = Curve::new(control_points, *pixel_len, &mut params.curve_bufs);
 
                 let velocity =
-                    (BASE_SCORING_DISTANCE * map.slider_mult * difficulty_point.slider_vel as f64)
-                        / timing_point.beat_len as f64;
+                    (BASE_SCORING_DISTANCE * map.slider_mult * difficulty_point.slider_vel)
+                        / timing_point.beat_len;
 
                 let end_time = h.start_time + span_count * curve.dist() / velocity;
                 let duration = end_time - h.start_time;
