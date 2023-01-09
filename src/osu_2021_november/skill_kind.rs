@@ -560,7 +560,8 @@ pub(crate) fn calculate_speed_rhythm_bonus(
 }
 
 fn calculate_wide_angle_bonus(angle: f64) -> f64 {
-    let base = (3.0 / 4.0 * ((PI / 6.0).clamp(angle, 5.0 / 6.0 * PI) - PI / 6.0)).sin();
+    #[allow(clippy::manual_clamp)]
+    let base = (3.0 / 4.0 * ((PI / 6.0).max(angle).min(5.0 / 6.0 * PI) - PI / 6.0)).sin();
 
     base * base
 }

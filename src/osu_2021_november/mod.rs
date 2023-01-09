@@ -118,26 +118,18 @@ fn calculate_skills(
 ) -> (Skills, OsuDifficultyAttributes) {
     let take = passed_objects.unwrap_or(map.hit_objects.len());
 
-    let map_attributes = map.attributes().mods(mods).build();
-    let hit_window = difficulty_range_od(map_attributes.od) / map_attributes.clock_rate;
-    let od = (80.0 - hit_window) / 6.0;
+    let map_attrs = map.attributes().mods(mods).build();
+    let hit_window = map_attrs.hit_windows.od;
 
-    let mut raw_ar = map.ar as f64;
     let hr = mods.hr();
 
-    if hr {
-        raw_ar = (raw_ar * 1.4).min(10.0);
-    } else if mods.ez() {
-        raw_ar *= 0.5;
-    }
-
-    let time_preempt = difficulty_range_ar(raw_ar);
-    let scaling_factor = ScalingFactor::new(map_attributes.cs);
+    let time_preempt = (map_attrs.hit_windows.ar * mods.clock_rate()) as f32 as f64;
+    let scaling_factor = ScalingFactor::new(map_attrs.cs);
 
     let mut attributes = OsuDifficultyAttributes {
-        ar: map_attributes.ar,
-        hp: map_attributes.hp,
-        od,
+        ar: map_attrs.ar,
+        hp: map_attrs.hp,
+        od: map_attrs.od,
         ..Default::default()
     };
 
@@ -184,7 +176,7 @@ fn calculate_skills(
 
     // First object has no predecessor and thus no strain, handle distinctly
     let mut curr_section_end =
-        (prev.time / map_attributes.clock_rate / SECTION_LEN).ceil() * SECTION_LEN;
+        (prev.time / map_attrs.clock_rate / SECTION_LEN).ceil() * SECTION_LEN;
 
     // Handle second object separately to remove later if-branching
     let h = DifficultyObject::new(
@@ -192,10 +184,10 @@ fn calculate_skills(
         &mut prev,
         prev_prev.as_ref(),
         &scaling_factor,
-        map_attributes.clock_rate,
+        map_attrs.clock_rate,
     );
 
-    let base_time = h.base.time / map_attributes.clock_rate;
+    let base_time = h.base.time / map_attrs.clock_rate;
 
     while base_time > curr_section_end {
         skills.start_new_section_from(curr_section_end);
@@ -212,10 +204,10 @@ fn calculate_skills(
             &mut prev,
             prev_prev.as_ref(),
             &scaling_factor,
-            map_attributes.clock_rate,
+            map_attrs.clock_rate,
         );
 
-        let base_time = h.base.time / map_attributes.clock_rate;
+        let base_time = h.base.time / map_attrs.clock_rate;
 
         while base_time > curr_section_end {
             skills.save_peak_and_start_new_section(curr_section_end);
@@ -374,10 +366,6 @@ fn lerp(start: f64, end: f64, percent: f64) -> f64 {
     start + (end - start) * percent
 }
 
-fn difficulty_range_ar(ar: f64) -> f64 {
-    difficulty_range(ar, 450.0, 1200.0, 1800.0)
-}
-
 /// The result of a difficulty calculation on an osu!standard map.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OsuDifficultyAttributes {
@@ -458,12 +446,7 @@ impl From<OsuPerformanceAttributes> for OsuDifficultyAttributes {
     }
 }
 
-#[inline]
-fn difficulty_range_od(od: f64) -> f64 {
-    difficulty_range(od, 20.0, 50.0, 80.0)
-}
-
-fn difficulty_range(val: f64, max: f64, avg: f64, min: f64) -> f64 {
+fn _difficulty_range(val: f64, max: f64, avg: f64, min: f64) -> f64 {
     if val > 5.0 {
         avg + (max - avg) * (val - 5.0) / 5.0
     } else if val < 5.0 {
