@@ -139,6 +139,7 @@ pub struct OsuDifficultyAttributes {
     pub max_combo: usize,
 }
 
+#[derive(Debug)]
 pub struct OsuPerformanceAttributes {
     pub difficulty: OsuDifficultyAttributes,
     pub pp: f64,

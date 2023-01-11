@@ -293,11 +293,7 @@ impl<'m> OsuPP<'m> {
         aim_value *= len_bonus;
 
         // Penalize misses
-        if self.n_misses > 0 {
-            aim_value *= 0.97
-                * (1.0 - (self.n_misses as f32 / total_hits).powf(0.775))
-                    .powi(self.n_misses as i32);
-        }
+        aim_value *= (0.97_f32).powf(self.n_misses as f32);
 
         // Combo scaling
         if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
@@ -305,25 +301,26 @@ impl<'m> OsuPP<'m> {
         }
 
         // AR bonus
-        let mut ar_factor = 0.0;
+        let mut ar_factor = 1.0;
         if attributes.ar > 10.33 {
-            ar_factor += 0.4 * (attributes.ar - 10.33);
+            ar_factor += 0.45 * (attributes.ar - 10.33);
         } else if attributes.ar < 8.0 {
-            ar_factor += 0.01 * (8.0 - attributes.ar);
+            if self.mods.hd() {
+                ar_factor += 0.02 * (8.0 - attributes.ar);
+            } else {
+                ar_factor += 0.01 * (8.0 - attributes.ar);
+            }
         }
-        aim_value *= 1.0 + ar_factor.min(ar_factor * total_hits as f64 / 1000.0) as f32;
+        aim_value *= ar_factor as f32;
 
         // HD bonus
         if self.mods.hd() {
-            aim_value *= 1.0 + 0.04 * (12.0 - attributes.ar as f32);
+            aim_value *= 1.18;
         }
 
         // FL bonus
         if self.mods.fl() {
-            aim_value *= 1.0
-                + 0.35 * (total_hits / 200.0).min(1.0)
-                + (total_hits > 200.0) as u8 as f32 * 0.3 * ((total_hits - 200.0) / 300.0).min(1.0)
-                + (total_hits > 500.0) as u8 as f32 * (total_hits - 500.0) / 1200.0;
+            aim_value *= 1.45 * len_bonus;
         }
 
         // Scale with accuracy
@@ -346,41 +343,16 @@ impl<'m> OsuPP<'m> {
         speed_value *= len_bonus;
 
         // Penalize misses
-        if self.n_misses > 0 {
-            speed_value *= 0.97
-                * (1.0 - (self.n_misses as f32 / total_hits).powf(0.775))
-                    .powf((self.n_misses as f32).powf(0.875));
-        }
+        speed_value *= (0.97_f32).powf(self.n_misses as f32);
 
         // Combo scaling
         if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
             speed_value *= ((combo as f32 / attributes.max_combo as f32).powf(0.8)).min(1.0);
         }
 
-        // AR bonus
-        if attributes.ar > 10.33 {
-            let ar_factor = 0.4 * (attributes.ar - 10.33);
-            speed_value *= 1.0 + ar_factor.min(ar_factor * total_hits as f64 / 1000.0) as f32;
-        }
-
-        // HD bonus
-        if self.mods.hd() {
-            speed_value *= 1.0 + 0.04 * (12.0 - attributes.ar as f32);
-        }
-
-        // Scaling the speed value with accuracy and OD
-        let od_factor = 0.95 + attributes.od * attributes.od / 750.0;
-        let acc_factor = self
-            .acc
-            .unwrap()
-            .powf((14.5 - attributes.od.max(8.0)) as f32 / 2.0);
-        speed_value *= od_factor as f32 * acc_factor;
-
-        // Penalize n50s
-        speed_value *= 0.98_f32.powf(
-            (self.n50.unwrap_or(0) as f32 >= total_hits / 500.0) as u8 as f32
-                * (self.n50.unwrap_or(0) as f32 - total_hits / 500.0),
-        );
+        // Scale with accuracy 
+        speed_value *= 0.5 + self.acc.unwrap() / 2.0;
+        speed_value *= 0.98 + attributes.od as f32 * attributes.od as f32 / 2500.0;
 
         speed_value
     }
@@ -404,7 +376,7 @@ impl<'m> OsuPP<'m> {
 
         // HD bonus
         if self.mods.hd() {
-            acc_value *= 1.08;
+            acc_value *= 1.02;
         }
 
         // FL bonus
