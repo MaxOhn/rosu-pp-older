@@ -247,13 +247,12 @@ impl<'m> OsuPP<'m> {
 
         // NF penalty
         if self.mods.nf() {
-            multiplier *= (1.0 - 0.02 * self.n_misses as f32).max(0.9);
+            multiplier *= 0.9;
         }
 
         // SO penalty
         if self.mods.so() {
-            let n_spinners = self.attributes.as_ref().unwrap().n_spinners;
-            multiplier *= 1.0 - (n_spinners as f32 / total_hits).powf(0.85);
+            multiplier *= 0.95;
         }
 
         let aim_value = self.compute_aim_value(total_hits);
