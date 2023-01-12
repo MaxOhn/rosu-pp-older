@@ -27,14 +27,14 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
 
     let map_attributes = map.attributes().mods(mods).build();
 
-    let mut diff_attributes = OsuDifficultyAttributes {
+    let mut diff_attrs = OsuDifficultyAttributes {
         ar: map_attributes.ar,
         od: map_attributes.od,
         ..Default::default()
     };
 
     if take < 2 {
-        return diff_attributes;
+        return diff_attrs;
     }
 
     let section_len = SECTION_LEN * map_attributes.clock_rate as f32;
@@ -56,7 +56,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
             radius,
             scaling_factor,
             &mut ticks_buf,
-            &mut diff_attributes,
+            &mut diff_attrs,
             &mut curve_bufs,
         )
     });
@@ -120,11 +120,11 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
 
     let stars = aim_strain + speed_strain + (aim_strain - speed_strain).abs() / 2.0;
 
-    diff_attributes.stars = stars as f64;
-    diff_attributes.speed_strain = speed_strain as f64;
-    diff_attributes.aim_strain = aim_strain as f64;
+    diff_attrs.stars = stars as f64;
+    diff_attrs.speed_strain = speed_strain as f64;
+    diff_attrs.aim_strain = aim_strain as f64;
 
-    diff_attributes
+    diff_attrs
 }
 
 #[derive(Clone, Debug, Default)]
@@ -141,6 +141,7 @@ pub struct OsuDifficultyAttributes {
     pub max_combo: usize,
 }
 
+#[derive(Clone, Debug)]
 pub struct OsuPerformanceAttributes {
     pub difficulty: OsuDifficultyAttributes,
     pub pp: f64,
