@@ -60,12 +60,12 @@ impl OsuObject {
     pub(crate) fn new(h: &HitObject, hr: bool, params: &mut ObjectParameters<'_>) -> Self {
         let ObjectParameters {
             map,
-            attributes,
+            attributes: attrs,
             ticks,
             curve_bufs,
         } = params;
 
-        attributes.max_combo += 1; // hitcircle, slider head, or spinner
+        attrs.max_combo += 1; // hitcircle, slider head, or spinner
         let mut pos = h.pos;
 
         if hr {
@@ -74,7 +74,7 @@ impl OsuObject {
 
         match &h.kind {
             HitObjectKind::Circle => {
-                attributes.n_circles += 1;
+                attrs.n_circles += 1;
 
                 Self {
                     time: h.start_time,
@@ -89,7 +89,7 @@ impl OsuObject {
                 control_points,
                 edge_sounds: _,
             } => {
-                attributes.n_sliders += 1;
+                attrs.n_sliders += 1;
 
                 let timing_point = map.timing_point_at(h.start_time);
                 let difficulty_point = map.difficulty_point_at(h.start_time).unwrap_or_default();
@@ -253,7 +253,7 @@ impl OsuObject {
                     _ => nested_objects.push(legacy_last_tick),
                 };
 
-                attributes.max_combo += nested_objects.len();
+                attrs.max_combo += nested_objects.len();
 
                 let lazy_travel_time = final_span_end_time - h.start_time;
                 let mut end_time_min = lazy_travel_time / span_duration;
@@ -284,7 +284,7 @@ impl OsuObject {
                 }
             }
             HitObjectKind::Spinner { end_time } | HitObjectKind::Hold { end_time } => {
-                attributes.n_spinners += 1;
+                attrs.n_spinners += 1;
 
                 Self {
                     time: h.start_time,
