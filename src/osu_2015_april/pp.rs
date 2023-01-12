@@ -292,7 +292,7 @@ impl<'m> OsuPP<'m> {
         aim_value *= len_bonus;
 
         // Penalize misses
-        aim_value *= (0.97_f32).powi(self.n_misses as i32);
+        aim_value *= 0.97_f32.powi(self.n_misses as i32);
 
         // Combo scaling
         if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
@@ -301,6 +301,7 @@ impl<'m> OsuPP<'m> {
 
         // AR bonus
         let mut ar_factor = 1.0;
+
         if attributes.ar > 10.33 {
             ar_factor += 0.45 * (attributes.ar - 10.33);
         } else if attributes.ar < 8.0 {
@@ -310,6 +311,7 @@ impl<'m> OsuPP<'m> {
                 ar_factor += 0.01 * (8.0 - attributes.ar);
             }
         }
+
         aim_value *= ar_factor as f32;
 
         // HD bonus
@@ -342,16 +344,17 @@ impl<'m> OsuPP<'m> {
         speed_value *= len_bonus;
 
         // Penalize misses
-        speed_value *= (0.97_f32).powi(self.n_misses as i32);
+        speed_value *= 0.97_f32.powi(self.n_misses as i32);
 
         // Combo scaling
         if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
             speed_value *= ((combo as f32 / attributes.max_combo as f32).powf(0.8)).min(1.0);
         }
 
-        // Scale with accuracy 
+        // Scale the speed value with accuracy _slightly_
         speed_value *= 0.5 + self.acc.unwrap() / 2.0;
-        speed_value *= 0.98 + attributes.od as f32 * attributes.od as f32 / 2500.0;
+        // It is important to also consider accuracy difficulty when doing that
+        speed_value *= 0.98 + (attributes.od * attributes.od) as f32 / 2500.0;
 
         speed_value
     }
