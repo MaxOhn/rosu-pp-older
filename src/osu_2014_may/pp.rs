@@ -276,14 +276,7 @@ impl<'m> OsuPP<'m> {
     fn compute_aim_value(&self, total_hits: f32) -> f32 {
         let attributes = self.attributes.as_ref().unwrap();
 
-        // TD penalty
-        let raw_aim = if self.mods.td() {
-            attributes.aim_strain.powf(0.8) as f32
-        } else {
-            attributes.aim_strain as f32
-        };
-
-        let mut aim_value = (5.0 * (raw_aim / 0.0445).max(1.0) - 4.0).powi(3) / 100_000.0;
+        let mut aim_value = (5.0 * (attributes.aim_strain as f32 / 0.0445).max(1.0) - 4.0).powi(3) / 100_000.0;
 
         // Longer maps are worth more
         aim_value *= 1.0 + 0.1 * (total_hits / 1500.0).min(1.0);
