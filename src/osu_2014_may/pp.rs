@@ -289,7 +289,7 @@ impl<'m> OsuPP<'m> {
         aim_value *= 1.0 + 0.1 * (total_hits / 1500.0).min(1.0);
         
         // Penalize misses
-        aim_value *= (0.97_f32).powf(self.n_misses as f32);
+        aim_value *= (0.97_f32).powi(self.n_misses as i32);
 
         // Combo scaling
         if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
@@ -336,7 +336,7 @@ impl<'m> OsuPP<'m> {
         speed_value *= 1.0 + 0.1 * (total_hits / 1500.0).min(1.0);
 
         // Penalize misses
-        speed_value *= (0.97_f32).powf(self.n_misses as f32);
+        speed_value *= (0.97_f32).powi(self.n_misses as i32);
 
         // Combo scaling
         if let Some(combo) = self.combo.filter(|_| attributes.max_combo > 0) {
