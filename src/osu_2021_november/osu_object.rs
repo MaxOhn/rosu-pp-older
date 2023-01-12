@@ -57,7 +57,7 @@ pub(crate) struct ObjectParameters<'a> {
 
 impl OsuObject {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(h: &HitObject, hr: bool, params: &mut ObjectParameters<'_>) -> Option<Self> {
+    pub(crate) fn new(h: &HitObject, hr: bool, params: &mut ObjectParameters<'_>) -> Self {
         let ObjectParameters {
             map,
             attributes,
@@ -72,7 +72,7 @@ impl OsuObject {
             pos.y = 384.0 - pos.y;
         }
 
-        let obj = match &h.kind {
+        match &h.kind {
             HitObjectKind::Circle => {
                 attributes.n_circles += 1;
 
@@ -283,7 +283,7 @@ impl OsuObject {
                     },
                 }
             }
-            HitObjectKind::Spinner { end_time } => {
+            HitObjectKind::Spinner { end_time } | HitObjectKind::Hold { end_time } => {
                 attributes.n_spinners += 1;
 
                 Self {
@@ -295,10 +295,7 @@ impl OsuObject {
                     },
                 }
             }
-            HitObjectKind::Hold { .. } => return None,
-        };
-
-        Some(obj)
+        }
     }
 
     #[inline]

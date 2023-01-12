@@ -49,7 +49,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
-    let mut hit_objects = map.hit_objects.iter().take(take).filter_map(|h| {
+    let mut hit_objects = map.hit_objects.iter().take(take).map(|h| {
         OsuObject::new(
             h,
             map,

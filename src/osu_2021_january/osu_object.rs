@@ -26,10 +26,10 @@ impl OsuObject {
         ticks: &mut Vec<f32>,
         attributes: &mut OsuDifficultyAttributes,
         curve_bufs: &mut CurveBuffers,
-    ) -> Option<Self> {
+    ) -> Self {
         attributes.max_combo += 1; // hitcircle, slider head, or spinner
 
-        let obj = match &h.kind {
+        match &h.kind {
             HitObjectKind::Circle => Self {
                 time: h.start_time as f32,
                 pos: h.pos,
@@ -148,16 +148,13 @@ impl OsuObject {
                     travel_dist: Some(travel_dist),
                 }
             }
-            HitObjectKind::Spinner { .. } => Self {
+            HitObjectKind::Spinner { .. } | HitObjectKind::Hold { .. } => Self {
                 time: h.start_time as f32,
                 pos: h.pos,
                 end_pos: h.pos,
                 travel_dist: None,
             },
-            HitObjectKind::Hold { .. } => return None,
-        };
-
-        Some(obj)
+        }
     }
 
     #[inline]

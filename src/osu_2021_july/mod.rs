@@ -54,26 +54,21 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
-    let mut hit_objects = map
-        .hit_objects
-        .iter()
-        .take(take)
-        .filter_map(|h| {
-            OsuObject::new(
-                h,
-                map,
-                radius,
-                scaling_factor,
-                &mut ticks_buf,
-                &mut diff_attributes,
-                &mut curve_bufs,
-            )
-        })
-        .map(|mut h| {
-            h.time /= map_attributes.clock_rate as f32;
+    let mut hit_objects = map.hit_objects.iter().take(take).map(|h| {
+        let mut h = OsuObject::new(
+            h,
+            map,
+            radius,
+            scaling_factor,
+            &mut ticks_buf,
+            &mut diff_attributes,
+            &mut curve_bufs,
+        );
 
-            h
-        });
+        h.time /= map_attributes.clock_rate as f32;
+
+        h
+    });
 
     let mut aim = Skill::new(SkillKind::Aim);
     let mut speed = Skill::new(SkillKind::Speed);

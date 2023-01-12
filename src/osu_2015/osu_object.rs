@@ -24,14 +24,14 @@ impl OsuObject {
         radius: f32,
         scaling_factor: f32,
         ticks: &mut Vec<f32>,
-        attributes: &mut OsuDifficultyAttributes,
+        attrs: &mut OsuDifficultyAttributes,
         curve_bufs: &mut CurveBuffers,
-    ) -> Option<Self> {
-        attributes.max_combo += 1; // hitcircle, slider head, or spinner
+    ) -> Self {
+        attrs.max_combo += 1; // hitcircle, slider head, or spinner
 
-        let obj = match &h.kind {
+        match &h.kind {
             HitObjectKind::Circle => {
-                attributes.n_circles += 1;
+                attrs.n_circles += 1;
 
                 Self {
                     time: h.start_time as f32,
@@ -75,7 +75,7 @@ impl OsuObject {
                 // Increases combo and adjusts `end_pos` and `travel_dist`
                 // w.r.t. the object position at the given time on the slider curve.
                 let mut compute_vertex = |time: f32| {
-                    attributes.max_combo += 1;
+                    attrs.max_combo += 1;
 
                     let mut progress = (time - h.start_time as f32) / span_duration;
 
@@ -153,8 +153,8 @@ impl OsuObject {
                     travel_dist: Some(travel_dist),
                 }
             }
-            HitObjectKind::Spinner { .. } => {
-                attributes.n_spinners += 1;
+            HitObjectKind::Spinner { .. } | HitObjectKind::Hold { .. } => {
+                attrs.n_spinners += 1;
 
                 Self {
                     time: h.start_time as f32,
@@ -163,10 +163,7 @@ impl OsuObject {
                     travel_dist: None,
                 }
             }
-            HitObjectKind::Hold { .. } => return None,
-        };
-
-        Some(obj)
+        }
     }
 
     #[inline]

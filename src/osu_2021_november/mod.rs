@@ -141,14 +141,12 @@ fn calculate_skills(
         curve_bufs: CurveBuffers::default(),
     };
 
-    let hit_objects_iter = map
+    let mut hit_objects: Vec<_> = map
         .hit_objects
         .iter()
         .take(take)
-        .filter_map(|h| OsuObject::new(h, hr, &mut params));
-
-    let mut hit_objects = Vec::with_capacity(take);
-    hit_objects.extend(hit_objects_iter);
+        .map(|h| OsuObject::new(h, hr, &mut params))
+        .collect();
 
     let stack_threshold = time_preempt * map.stack_leniency as f64;
 
