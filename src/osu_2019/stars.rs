@@ -2,7 +2,9 @@
 //! This means the jump distance inbetween notes might be slightly off, resulting in small inaccuracies.
 //! Since calculating these offsets is relatively expensive though, this version is faster than `all_included`.
 
-use super::{curve::CurveBuffers, DifficultyObject, OsuObject, Skill, SkillKind};
+use crate::util::curve::CurveBuffers;
+
+use super::{DifficultyObject, OsuObject, Skill, SkillKind};
 
 use rosu_pp::Beatmap;
 

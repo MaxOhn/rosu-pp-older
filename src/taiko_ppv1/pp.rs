@@ -1,3 +1,5 @@
+use crate::util::math::difficulty_range;
+
 use super::{stars, TaikoDifficultyAttributes, TaikoPerformanceAttributes};
 
 use rosu_pp::{Beatmap, DifficultyAttributes, Mods, PerformanceAttributes};
@@ -227,32 +229,20 @@ impl<'m> TaikoPP<'m> {
             od *= 0.5;
         }
 
-        let hit_window = difficulty_range_od(od) / self.mods.clock_rate() as f32;
+        let hit_window = difficulty_range_od(od as f64) / self.mods.clock_rate();
 
-        (150.0 / hit_window).powf(1.1)
+        (150.0 / hit_window as f32).powf(1.1)
             * self.acc.powi(15)
             * 22.0
             * (self.max_combo as f32 / 1500.0).powf(0.3).min(1.15)
     }
 }
 
-const HITWINDOW_MIN: f32 = 50.0;
-const HITWINDOW_AVG: f32 = 35.0;
-const HITWINDOW_MAX: f32 = 20.0;
+const HITWINDOW_MIN: f64 = 50.0;
+const HITWINDOW_AVG: f64 = 35.0;
+const HITWINDOW_MAX: f64 = 20.0;
 
-#[inline]
-fn difficulty_range(val: f32, max: f32, avg: f32, min: f32) -> f32 {
-    if val > 5.0 {
-        avg + (max - avg) * (val - 5.0) / 5.0
-    } else if val < 5.0 {
-        avg - (avg - min) * (5.0 - val) / 5.0
-    } else {
-        avg
-    }
-}
-
-#[inline]
-fn difficulty_range_od(od: f32) -> f32 {
+fn difficulty_range_od(od: f64) -> f64 {
     difficulty_range(od, HITWINDOW_MAX, HITWINDOW_AVG, HITWINDOW_MIN)
 }
 

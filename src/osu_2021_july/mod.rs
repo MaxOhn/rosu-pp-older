@@ -1,4 +1,3 @@
-mod curve;
 mod difficulty_object;
 mod osu_object;
 mod pp;
@@ -13,7 +12,7 @@ use skill_kind::SkillKind;
 
 use rosu_pp::Beatmap;
 
-use self::curve::CurveBuffers;
+use crate::util::curve::CurveBuffers;
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -137,10 +136,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     diff_attributes.aim_strain = aim_rating as f64;
 
     diff_attributes
-}
-
-fn lerp(start: f32, end: f32, percent: f32) -> f32 {
-    start + (end - start) * percent
 }
 
 #[derive(Clone, Debug, Default)]

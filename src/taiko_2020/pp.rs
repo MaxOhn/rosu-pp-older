@@ -1,5 +1,7 @@
 use rosu_pp::{taiko::TaikoScoreState, Beatmap, Mods};
 
+use crate::util::math::difficulty_range;
+
 use super::{TaikoDifficultyAttributes, TaikoPerformanceAttributes, TaikoStars};
 
 /// Performance calculator on osu!taiko maps.
@@ -277,19 +279,8 @@ impl<'map> TaikoPPInner<'map> {
     }
 }
 
-#[inline]
 fn difficulty_range_od(od: f64) -> f64 {
     difficulty_range(od, 20.0, 35.0, 50.0)
-}
-
-fn difficulty_range(val: f64, max: f64, avg: f64, min: f64) -> f64 {
-    if val > 5.0 {
-        avg + (max - avg) * (val - 5.0) / 5.0
-    } else if val < 5.0 {
-        avg - (avg - min) * (5.0 - val) / 5.0
-    } else {
-        avg
-    }
 }
 
 /// Abstract type to provide flexibility when passing difficulty attributes to a performance calculation.

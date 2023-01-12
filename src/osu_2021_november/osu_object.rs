@@ -5,10 +5,9 @@ use rosu_pp::{
     Beatmap,
 };
 
-use super::{
-    curve::{Curve, CurveBuffers},
-    OsuDifficultyAttributes,
-};
+use crate::util::curve::{Curve, CurveBuffers};
+
+use super::OsuDifficultyAttributes;
 
 const LEGACY_LAST_TICK_OFFSET: f64 = 36.0;
 const BASE_SCORING_DISTANCE: f64 = 100.0;

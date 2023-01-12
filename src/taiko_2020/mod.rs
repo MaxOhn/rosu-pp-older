@@ -1,6 +1,5 @@
 mod difficulty_object;
 mod hitobject_rhythm;
-mod limited_queue;
 mod pp;
 mod rim;
 mod skill;
@@ -10,7 +9,6 @@ mod taiko_object;
 
 use difficulty_object::DifficultyObject;
 use hitobject_rhythm::{closest_rhythm, HitObjectRhythm};
-use limited_queue::LimitedQueue;
 pub use pp::*;
 use rim::Rim;
 use rosu_pp::{Beatmap, Mods};

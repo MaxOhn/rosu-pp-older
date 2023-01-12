@@ -1,4 +1,6 @@
-use super::{curve::CurveBuffers, stars::OsuDifficultyAttributes, Curve};
+use crate::util::curve::{Curve, CurveBuffers};
+
+use super::stars::OsuDifficultyAttributes;
 
 use rosu_pp::{
     parse::{HitObject, HitObjectKind, Pos2},
