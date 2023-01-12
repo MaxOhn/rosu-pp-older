@@ -6,7 +6,9 @@ use std::{
 
 use rosu_pp::parse::Pos2;
 
-use super::{lerp, DifficultyObject};
+use crate::util::math::lerp;
+
+use super::DifficultyObject;
 
 const SINGLE_SPACING_TRESHOLD: f64 = 125.0;
 

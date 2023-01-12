@@ -2,7 +2,9 @@
 //! This means the jump distance inbetween notes might be slightly off, resulting in small inaccuracies.
 //! Since calculating these offsets is relatively expensive though, this version is faster than `all_included`.
 
-use super::{curve::CurveBuffers, DifficultyObject, OsuObject, Skill, SkillKind};
+use crate::util::curve::CurveBuffers;
+
+use super::{DifficultyObject, OsuObject, Skill, SkillKind};
 
 use rosu_pp::Beatmap;
 
@@ -47,7 +49,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
-    let mut hit_objects = map.hit_objects.iter().take(take).filter_map(|h| {
+    let mut hit_objects = map.hit_objects.iter().take(take).map(|h| {
         OsuObject::new(
             h,
             map,

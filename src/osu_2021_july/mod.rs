@@ -1,4 +1,3 @@
-mod curve;
 mod difficulty_object;
 mod osu_object;
 mod pp;
@@ -13,7 +12,7 @@ use skill_kind::SkillKind;
 
 use rosu_pp::Beatmap;
 
-use self::curve::CurveBuffers;
+use crate::util::curve::CurveBuffers;
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -55,26 +54,21 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
-    let mut hit_objects = map
-        .hit_objects
-        .iter()
-        .take(take)
-        .filter_map(|h| {
-            OsuObject::new(
-                h,
-                map,
-                radius,
-                scaling_factor,
-                &mut ticks_buf,
-                &mut diff_attributes,
-                &mut curve_bufs,
-            )
-        })
-        .map(|mut h| {
-            h.time /= map_attributes.clock_rate as f32;
+    let mut hit_objects = map.hit_objects.iter().take(take).map(|h| {
+        let mut h = OsuObject::new(
+            h,
+            map,
+            radius,
+            scaling_factor,
+            &mut ticks_buf,
+            &mut diff_attributes,
+            &mut curve_bufs,
+        );
 
-            h
-        });
+        h.time /= map_attributes.clock_rate as f32;
+
+        h
+    });
 
     let mut aim = Skill::new(SkillKind::Aim);
     let mut speed = Skill::new(SkillKind::Speed);
@@ -137,10 +131,6 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     diff_attributes.aim_strain = aim_rating as f64;
 
     diff_attributes
-}
-
-fn lerp(start: f32, end: f32, percent: f32) -> f32 {
-    start + (end - start) * percent
 }
 
 #[derive(Clone, Debug, Default)]

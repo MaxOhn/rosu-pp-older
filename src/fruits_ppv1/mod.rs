@@ -1,5 +1,4 @@
 mod catch_object;
-mod curve;
 mod difficulty_object;
 mod movement;
 mod pp;
@@ -7,7 +6,6 @@ mod pp;
 use std::{iter::Map, vec::IntoIter};
 
 use catch_object::CatchObject;
-use curve::Curve;
 use difficulty_object::DifficultyObject;
 use movement::Movement;
 pub use pp::*;
@@ -18,7 +16,7 @@ use rosu_pp::{
     Beatmap, Mods,
 };
 
-use self::curve::CurveBuffers;
+use crate::util::curve::{Curve, CurveBuffers};
 
 const SECTION_LENGTH: f64 = 750.0;
 const STAR_SCALING_FACTOR: f64 = 0.145;

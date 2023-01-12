@@ -5,10 +5,9 @@ use rosu_pp::{
     Beatmap,
 };
 
-use super::{
-    curve::{Curve, CurveBuffers},
-    OsuDifficultyAttributes,
-};
+use crate::util::curve::{Curve, CurveBuffers};
+
+use super::OsuDifficultyAttributes;
 
 const LEGACY_LAST_TICK_OFFSET: f64 = 36.0;
 const BASE_SCORING_DISTANCE: f64 = 100.0;
@@ -58,24 +57,24 @@ pub(crate) struct ObjectParameters<'a> {
 
 impl OsuObject {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(h: &HitObject, hr: bool, params: &mut ObjectParameters<'_>) -> Option<Self> {
+    pub(crate) fn new(h: &HitObject, hr: bool, params: &mut ObjectParameters<'_>) -> Self {
         let ObjectParameters {
             map,
-            attributes,
+            attributes: attrs,
             ticks,
             curve_bufs,
         } = params;
 
-        attributes.max_combo += 1; // hitcircle, slider head, or spinner
+        attrs.max_combo += 1; // hitcircle, slider head, or spinner
         let mut pos = h.pos;
 
         if hr {
             pos.y = 384.0 - pos.y;
         }
 
-        let obj = match &h.kind {
+        match &h.kind {
             HitObjectKind::Circle => {
-                attributes.n_circles += 1;
+                attrs.n_circles += 1;
 
                 Self {
                     time: h.start_time,
@@ -90,7 +89,7 @@ impl OsuObject {
                 control_points,
                 edge_sounds: _,
             } => {
-                attributes.n_sliders += 1;
+                attrs.n_sliders += 1;
 
                 let timing_point = map.timing_point_at(h.start_time);
                 let difficulty_point = map.difficulty_point_at(h.start_time).unwrap_or_default();
@@ -254,7 +253,7 @@ impl OsuObject {
                     _ => nested_objects.push(legacy_last_tick),
                 };
 
-                attributes.max_combo += nested_objects.len();
+                attrs.max_combo += nested_objects.len();
 
                 let lazy_travel_time = final_span_end_time - h.start_time;
                 let mut end_time_min = lazy_travel_time / span_duration;
@@ -284,8 +283,8 @@ impl OsuObject {
                     },
                 }
             }
-            HitObjectKind::Spinner { end_time } => {
-                attributes.n_spinners += 1;
+            HitObjectKind::Spinner { end_time } | HitObjectKind::Hold { end_time } => {
+                attrs.n_spinners += 1;
 
                 Self {
                     time: h.start_time,
@@ -296,10 +295,7 @@ impl OsuObject {
                     },
                 }
             }
-            HitObjectKind::Hold { .. } => return None,
-        };
-
-        Some(obj)
+        }
     }
 
     #[inline]

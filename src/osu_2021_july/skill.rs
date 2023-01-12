@@ -1,10 +1,12 @@
-use super::{lerp, DifficultyObject, SkillKind};
+use crate::util::math::lerp;
+
+use super::{DifficultyObject, SkillKind};
 
 use std::cmp::Ordering;
 
 const SPEED_SKILL_MULTIPLIER: f32 = 1400.0;
 const SPEED_STRAIN_DECAY_BASE: f32 = 0.3;
-const REDUCED_STRAIN_BASELINE: f32 = 0.75;
+const REDUCED_STRAIN_BASELINE: f64 = 0.75;
 
 const AIM_SKILL_MULTIPLIER: f32 = 26.25;
 const AIM_STRAIN_DECAY_BASE: f32 = 0.15;
@@ -70,8 +72,8 @@ impl Skill {
             .enumerate()
         {
             let clamped = (i as f32 / reduced_section_count_f32).clamp(0.0, 1.0);
-            let scale = (lerp(1.0, 10.0, clamped)).log10();
-            *strain *= lerp(REDUCED_STRAIN_BASELINE, 1.0, scale);
+            let scale = (lerp(1.0, 10.0, clamped as f64)).log10();
+            *strain *= lerp(REDUCED_STRAIN_BASELINE, 1.0, scale) as f32;
         }
 
         self.strain_peaks

@@ -1,4 +1,3 @@
-mod curve;
 mod difficulty_object;
 mod osu_object;
 mod pp;
@@ -16,7 +15,9 @@ use scaling_factor::ScalingFactor;
 use skill::Skill;
 use skill_kind::SkillKind;
 
-use self::{curve::CurveBuffers, skill::Skills};
+use crate::util::curve::CurveBuffers;
+
+use self::skill::Skills;
 
 const SECTION_LEN: f64 = 400.0;
 const DIFFICULTY_MULTIPLIER: f64 = 0.0675;
@@ -140,14 +141,12 @@ fn calculate_skills(
         curve_bufs: CurveBuffers::default(),
     };
 
-    let hit_objects_iter = map
+    let mut hit_objects: Vec<_> = map
         .hit_objects
         .iter()
         .take(take)
-        .filter_map(|h| OsuObject::new(h, hr, &mut params));
-
-    let mut hit_objects = Vec::with_capacity(take);
-    hit_objects.extend(hit_objects_iter);
+        .map(|h| OsuObject::new(h, hr, &mut params))
+        .collect();
 
     let stack_threshold = time_preempt * map.stack_leniency as f64;
 
@@ -360,10 +359,6 @@ fn old_stacking(hit_objects: &mut [OsuObject], stack_threshold: f64) {
             }
         }
     }
-}
-
-fn lerp(start: f64, end: f64, percent: f64) -> f64 {
-    start + (end - start) * percent
 }
 
 /// The result of a difficulty calculation on an osu!standard map.

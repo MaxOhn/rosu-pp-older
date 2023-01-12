@@ -1,6 +1,8 @@
 use rosu_pp::Beatmap;
 
-use super::{LimitedQueue, Rim};
+use crate::util::limited_queue::LimitedQueue;
+
+use super::Rim;
 
 const ROLL_MIN_REPETITIONS: usize = 12;
 const TL_MIN_REPETITIONS: isize = 16;

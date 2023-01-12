@@ -1,4 +1,6 @@
-use super::{lerp, skill_kind::calculate_speed_rhythm_bonus, DifficultyObject, SkillKind};
+use crate::util::math::lerp;
+
+use super::{skill_kind::calculate_speed_rhythm_bonus, DifficultyObject, SkillKind};
 
 use std::{cmp::Ordering, fmt};
 
