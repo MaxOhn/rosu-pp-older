@@ -6,12 +6,16 @@ use crate::util::curve::CurveBuffers;
 
 use super::{DifficultyObject, OsuObject, Skill, SkillKind};
 
-use rosu_pp::Beatmap;
+use rosu_pp::{Beatmap, Mods};
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
 const DIFFICULTY_MULTIPLIER: f32 = 0.0675;
 const NORMALIZED_RADIUS: f32 = 52.0;
+
+// Old versions had different hit windows
+const OD_MIN: f64 = 79.5;
+const OD_MAX: f64 = 19.5;
 
 /// Star calculation for osu!standard maps.
 ///
@@ -27,9 +31,15 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
 
     let map_attributes = map.attributes().mods(mods).build();
 
+    let mod_mult = match (mods.hr(), mods.ez()) {
+        (true, _) => 1.4,
+        (_, true) => 0.5,
+        _ => 1.0,
+    };
+
     let mut diff_attrs = OsuDifficultyAttributes {
         ar: map_attributes.ar,
-        od: map_attributes.od,
+        od: modify_od(map.od as f64, map_attributes.clock_rate, mod_mult),
         ..Default::default()
     };
 
@@ -144,4 +154,14 @@ pub struct OsuPerformanceAttributes {
     pub pp_aim: f64,
     pub pp_flashlight: f64,
     pub pp_speed: f64,
+}
+
+fn modify_od(base_od: f64, speed_mult: f64, mod_mult: f64) -> f64 {
+    let mut od = base_od;
+    od *= mod_mult;
+    let mut odms = OD_MIN - (6.0 * od).ceil();
+    odms = OD_MIN.min(OD_MAX.max(odms));
+    odms /= speed_mult;
+    od = (OD_MIN - odms) / 6.0;
+    return od;
 }
