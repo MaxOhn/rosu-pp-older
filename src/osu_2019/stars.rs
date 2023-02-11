@@ -159,3 +159,11 @@ pub struct OsuPerformanceAttributes {
     pub pp_flashlight: f64,
     pub pp_speed: f64,
 }
+
+impl OsuPerformanceAttributes {
+    /// Return the maximum combo of the map.
+    #[inline]
+    pub fn max_combo(&self) -> usize {
+        self.difficulty.max_combo
+    }
+}

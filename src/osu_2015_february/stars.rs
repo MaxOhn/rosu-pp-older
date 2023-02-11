@@ -161,6 +161,14 @@ pub struct OsuPerformanceAttributes {
     pub pp_speed: f64,
 }
 
+impl OsuPerformanceAttributes {
+    /// Return the maximum combo of the map.
+    #[inline]
+    pub fn max_combo(&self) -> usize {
+        self.difficulty.max_combo
+    }
+}
+
 fn modify_od(base_od: f64, speed_mult: f64, mod_mult: f64) -> f64 {
     let mut od = base_od;
     od *= mod_mult;

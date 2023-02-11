@@ -94,3 +94,11 @@ pub struct TaikoPerformanceAttributes {
     /// The strain portion of the final pp.
     pub pp_strain: f64,
 }
+
+impl TaikoPerformanceAttributes {
+    /// Return the maximum combo of the map.
+    #[inline]
+    pub fn max_combo(&self) -> usize {
+        self.difficulty.max_combo
+    }
+}
