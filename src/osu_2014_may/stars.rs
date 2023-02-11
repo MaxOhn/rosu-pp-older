@@ -163,5 +163,6 @@ fn modify_od(base_od: f64, speed_mult: f64, mod_mult: f64) -> f64 {
     odms = OD_MIN.min(OD_MAX.max(odms));
     odms /= speed_mult;
     od = (OD_MIN - odms) / 6.0;
-    return od;
+
+    od
 }
