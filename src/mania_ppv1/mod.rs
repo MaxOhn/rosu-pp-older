@@ -80,7 +80,7 @@ impl<'o> DifficultyHitObject<'o> {
     #[inline]
     fn new(base: &'o HitObject, prev: &'o HitObject, cs: f32, clock_rate: f32) -> Self {
         let x_divisor = 512.0 / cs;
-        let column = (base.pos.x / x_divisor).floor() as usize;
+        let column = (base.pos.x / x_divisor).floor().clamp(0.0, cs - 1.0) as usize;
 
         Self {
             base,
