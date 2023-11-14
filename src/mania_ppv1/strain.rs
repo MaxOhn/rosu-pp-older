@@ -1,6 +1,7 @@
 use super::DifficultyHitObject;
 
 use std::cmp::Ordering;
+use rosu_pp::parse::HitObjectKind;
 
 pub(crate) struct Strain {
     current_strain: f32,
@@ -71,7 +72,13 @@ impl Strain {
     }
 
     fn strain_value_of(&mut self, current: &DifficultyHitObject) -> f32 {
-        let end_time = current.base.end_time();
+        let end_time = match &current.base.kind {
+            HitObjectKind::Circle => current.base.start_time,
+            // incorrect, only called in mania which has no sliders though
+            HitObjectKind::Slider { .. } => current.base.start_time,
+            HitObjectKind::Spinner { end_time } => *end_time,
+            HitObjectKind::Hold { end_time, .. } => *end_time,
+        };
 
         let mut hold_factor = 1.0;
         let mut hold_addition = 0.0;
