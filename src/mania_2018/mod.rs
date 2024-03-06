@@ -2,8 +2,16 @@ mod pp;
 mod strain;
 
 pub use pp::*;
-use rosu_pp::{parse::HitObject, Beatmap, GameMode, Mods};
+use rosu_pp::{
+    model::{
+        hit_object::{HitObject, HitObjectKind},
+        mode::GameMode,
+    },
+    Beatmap,
+};
 use strain::Strain;
+
+use crate::util::mods::Mods;
 
 const SECTION_LEN: f64 = 400.0;
 const STAR_SCALING_FACTOR: f64 = 0.018;
@@ -30,18 +38,13 @@ const STAR_SCALING_FACTOR: f64 = 0.018;
 pub struct ManiaStars<'map> {
     map: &'map Beatmap,
     mods: u32,
-    passed_objects: Option<usize>,
 }
 
 impl<'map> ManiaStars<'map> {
     /// Create a new difficulty calculator for osu!mania maps.
     #[inline]
     pub fn new(map: &'map Beatmap) -> Self {
-        Self {
-            map,
-            mods: 0,
-            passed_objects: None,
-        }
+        Self { map, mods: 0 }
     }
 
     /// Specify mods through their bit values.
@@ -50,18 +53,6 @@ impl<'map> ManiaStars<'map> {
     #[inline]
     pub fn mods(mut self, mods: u32) -> Self {
         self.mods = mods;
-
-        self
-    }
-
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    ///
-    /// If you want to calculate the difficulty after every few objects, instead of
-    /// using [`ManiaStars`] multiple times with different `passed_objects`, you should use
-    /// [`ManiaGradualDifficultyAttributes`](crate::mania::ManiaGradualDifficultyAttributes).
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects = Some(passed_objects);
 
         self
     }
@@ -78,13 +69,8 @@ impl<'map> ManiaStars<'map> {
 }
 
 fn calculate_strain(params: ManiaStars<'_>) -> Strain {
-    let ManiaStars {
-        map,
-        mods,
-        passed_objects,
-    } = params;
+    let ManiaStars { map, mods } = params;
 
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
     let rounded_cs = map.cs.round();
 
     let columns = match map.mode {
@@ -92,8 +78,15 @@ fn calculate_strain(params: ManiaStars<'_>) -> Strain {
         GameMode::Osu => {
             let rounded_od = map.od.round();
 
-            let n_objects = map.n_circles + map.n_sliders + map.n_spinners;
-            let slider_or_spinner_ratio = (n_objects - map.n_circles) as f32 / n_objects as f32;
+            let len = map.hit_objects.len();
+
+            let slider_or_spinner_count = map
+                .hit_objects
+                .iter()
+                .filter(|h| matches!(h.kind, HitObjectKind::Slider(_) | HitObjectKind::Spinner(_)))
+                .count();
+
+            let slider_or_spinner_ratio = f64::from(slider_or_spinner_count as f32 / len as f32);
 
             if slider_or_spinner_ratio < 0.2 {
                 7
@@ -115,7 +108,6 @@ fn calculate_strain(params: ManiaStars<'_>) -> Strain {
     let mut hit_objects = map
         .hit_objects
         .iter()
-        .take(take)
         .skip(1)
         .zip(map.hit_objects.iter())
         .map(|(base, prev)| DifficultyHitObject::new(base, prev, columns, clock_rate));

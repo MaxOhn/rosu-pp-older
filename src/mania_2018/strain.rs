@@ -1,7 +1,8 @@
-use super::DifficultyHitObject;
-
 use std::cmp::Ordering;
-use rosu_pp::parse::HitObjectKind;
+
+use rosu_pp::model::hit_object::{HitObjectKind, HoldNote, Spinner};
+
+use super::DifficultyHitObject;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Strain {
@@ -77,8 +78,8 @@ impl Strain {
             HitObjectKind::Circle => current.base.start_time,
             // incorrect, only called in mania which has no sliders though
             HitObjectKind::Slider { .. } => current.base.start_time,
-            HitObjectKind::Spinner { end_time } => *end_time,
-            HitObjectKind::Hold { end_time, .. } => *end_time,
+            HitObjectKind::Spinner(Spinner { duration })
+            | HitObjectKind::Hold(HoldNote { duration }) => current.base.start_time + duration,
         };
 
         let mut hold_factor = 1.0;

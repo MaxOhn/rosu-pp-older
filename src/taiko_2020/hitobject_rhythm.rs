@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use rosu_pp::parse::HitObject;
+use rosu_pp::model::hit_object::HitObject;
 
 static COMMON_RHYTHMS: [HitObjectRhythm; 9] = [
     HitObjectRhythm {

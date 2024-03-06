@@ -1,11 +1,18 @@
 use std::{cmp::Ordering, convert::identity};
 
+use rosu_map::{
+    section::hit_objects::{BorrowedCurve, CurveBuffers},
+    util::Pos,
+};
 use rosu_pp::{
-    parse::{HitObject, HitObjectKind, Pos2},
+    model::{
+        control_point::{DifficultyPoint, TimingPoint},
+        hit_object::{HitObject, HitObjectKind, HoldNote, Slider, Spinner},
+    },
     Beatmap,
 };
 
-use crate::util::curve::{Curve, CurveBuffers};
+use crate::util::control_points::{difficulty_point_at, timing_point_at};
 
 use super::OsuDifficultyAttributes;
 
@@ -15,7 +22,7 @@ const BASE_SCORING_DISTANCE: f64 = 100.0;
 #[derive(Clone, Debug)]
 pub(crate) struct OsuObject {
     pub(crate) time: f64,
-    pub(crate) pos: Pos2,
+    pub(crate) pos: Pos,
     pub(crate) stack_height: f32,
     pub(crate) kind: OsuObjectKind,
 }
@@ -25,8 +32,8 @@ pub(crate) enum OsuObjectKind {
     Circle,
     Slider {
         end_time: f64,
-        end_pos: Pos2,
-        lazy_end_pos: Pos2,
+        end_pos: Pos,
+        lazy_end_pos: Pos,
         nested_objects: Vec<NestedObject>,
     },
     Spinner {
@@ -36,7 +43,7 @@ pub(crate) enum OsuObjectKind {
 
 #[derive(Clone, Debug)]
 pub(crate) struct NestedObject {
-    pub(crate) pos: Pos2,
+    pub(crate) pos: Pos,
     pub(crate) time: f64,
     pub(crate) kind: NestedObjectKind,
 }
@@ -51,7 +58,7 @@ pub(crate) enum NestedObjectKind {
 pub(crate) struct ObjectParameters<'a> {
     pub(crate) map: &'a Beatmap,
     pub(crate) attributes: &'a mut OsuDifficultyAttributes,
-    pub(crate) ticks: Vec<(Pos2, f64)>,
+    pub(crate) ticks: Vec<(Pos, f64)>,
     pub(crate) curve_bufs: CurveBuffers,
 }
 
@@ -83,33 +90,37 @@ impl OsuObject {
                     kind: OsuObjectKind::Circle,
                 }
             }
-            HitObjectKind::Slider {
-                pixel_len,
+            HitObjectKind::Slider(Slider {
+                expected_dist,
                 repeats,
                 control_points,
-                edge_sounds: _,
-            } => {
+                node_sounds: _,
+            }) => {
                 attrs.n_sliders += 1;
 
-                let timing_point = map.timing_point_at(h.start_time);
-                let difficulty_point = map.difficulty_point_at(h.start_time).unwrap_or_default();
+                let beat_len = timing_point_at(&map.timing_points, h.start_time)
+                    .map_or(TimingPoint::DEFAULT_BEAT_LEN, |timing| timing.beat_len);
+
+                let slider_vel = difficulty_point_at(&map.difficulty_points, h.start_time)
+                    .map_or(DifficultyPoint::DEFAULT_SLIDER_VELOCITY, |difficulty| {
+                        difficulty.slider_velocity
+                    });
 
                 let span_count = (*repeats + 1) as f64;
 
-                let mut tick_dist = 100.0 * map.slider_mult / map.tick_rate;
+                let mut tick_dist = 100.0 * map.slider_multiplier / map.slider_tick_rate;
 
                 // * prior to v8, speed multipliers don't adjust for how many ticks are generated over the same distance.
                 // * this results in more (or less) ticks being generated in <v8 maps for the same time duration.
                 if map.version >= 8 {
-                    tick_dist /= (100.0 / difficulty_point.slider_vel).clamp(10.0, 1000.0) / 100.0;
+                    tick_dist /= (100.0 / slider_vel).clamp(10.0, 1000.0) / 100.0;
                 }
 
                 // Build the curve w.r.t. the control points
-                let curve = Curve::new(control_points, *pixel_len, curve_bufs);
+                let curve = BorrowedCurve::new(control_points, *expected_dist, curve_bufs);
 
                 let velocity =
-                    (BASE_SCORING_DISTANCE * map.slider_mult * difficulty_point.slider_vel)
-                        / timing_point.beat_len;
+                    (BASE_SCORING_DISTANCE * map.slider_multiplier * slider_vel) / beat_len;
 
                 let end_time = h.start_time + span_count * curve.dist() / velocity;
                 let duration = end_time - h.start_time;
@@ -253,7 +264,7 @@ impl OsuObject {
                     _ => nested_objects.push(legacy_last_tick),
                 };
 
-                attrs.max_combo += nested_objects.len();
+                attrs.max_combo += nested_objects.len() as u32;
 
                 let lazy_travel_time = final_span_end_time - h.start_time;
                 let mut end_time_min = lazy_travel_time / span_duration;
@@ -283,7 +294,8 @@ impl OsuObject {
                     },
                 }
             }
-            HitObjectKind::Spinner { end_time } | HitObjectKind::Hold { end_time } => {
+            HitObjectKind::Spinner(Spinner { duration })
+            | HitObjectKind::Hold(HoldNote { duration }) => {
                 attrs.n_spinners += 1;
 
                 Self {
@@ -291,7 +303,7 @@ impl OsuObject {
                     pos,
                     stack_height: 0.0,
                     kind: OsuObjectKind::Spinner {
-                        end_time: *end_time,
+                        end_time: h.start_time + duration,
                     },
                 }
             }
@@ -308,7 +320,7 @@ impl OsuObject {
     }
 
     #[inline]
-    pub(crate) fn end_pos(&self) -> Pos2 {
+    pub(crate) fn end_pos(&self) -> Pos {
         match &self.kind {
             OsuObjectKind::Circle | OsuObjectKind::Spinner { .. } => self.pos,
             OsuObjectKind::Slider { end_pos, .. } => *end_pos,
@@ -316,7 +328,7 @@ impl OsuObject {
     }
 
     #[inline]
-    pub(crate) fn lazy_end_pos(&self, stack_offset: Pos2) -> Pos2 {
+    pub(crate) fn lazy_end_pos(&self, stack_offset: Pos) -> Pos {
         match &self.kind {
             OsuObjectKind::Circle | OsuObjectKind::Spinner { .. } => self.pos,
             OsuObjectKind::Slider { lazy_end_pos, .. } => *lazy_end_pos + stack_offset,

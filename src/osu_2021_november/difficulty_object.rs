@@ -1,4 +1,4 @@
-use rosu_pp::parse::Pos2;
+use rosu_map::util::Pos;
 
 use super::{
     osu_object::{NestedObjectKind, OsuObjectKind},
@@ -124,7 +124,7 @@ impl<'h> DifficultyObject<'h> {
 
     fn compute_slider_cursor_pos(
         prev: &mut OsuObject,
-        stack_offset: Pos2,
+        stack_offset: Pos,
         scaling_factor: f64,
         clock_rate: f64,
     ) -> (f64, f64) {
@@ -211,7 +211,7 @@ impl<'h> DifficultyObject<'h> {
 
     fn compute_movement_values(
         prev: &OsuObject,
-        base_pos: Pos2,
+        base_pos: Pos,
         jump_dist: f64,
         strain_time: f64,
         travel_time: f64,

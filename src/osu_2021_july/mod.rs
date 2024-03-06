@@ -7,12 +7,10 @@ mod skill_kind;
 use difficulty_object::DifficultyObject;
 use osu_object::OsuObject;
 pub use pp::{OsuAttributeProvider, OsuPP};
+use rosu_map::section::hit_objects::CurveBuffers;
+use rosu_pp::{model::hit_object::HitObjectKind, Beatmap};
 use skill::Skill;
 use skill_kind::SkillKind;
-
-use rosu_pp::Beatmap;
-
-use crate::util::curve::CurveBuffers;
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -26,11 +24,7 @@ const NORMALIZED_RADIUS: f32 = 52.0;
 /// it has generally little effect on stars, the results are close to perfect.
 /// This version is considerably more efficient than `all_included` since
 /// processing stack leniency is relatively expensive.
-///
-/// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDifficultyAttributes {
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
-
+pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
     let map_attributes = map.attributes().mods(mods).build();
 
     let mut diff_attributes = OsuDifficultyAttributes {
@@ -39,7 +33,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
         ..Default::default()
     };
 
-    if take < 2 {
+    if map.hit_objects.len() < 2 {
         return diff_attributes;
     }
 
@@ -54,7 +48,17 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
-    let mut hit_objects = map.hit_objects.iter().take(take).map(|h| {
+    let mut n_circles = 0;
+    let mut n_sliders = 0;
+    let mut n_spinners = 0;
+
+    let mut hit_objects = map.hit_objects.iter().map(|h| {
+        match h.kind {
+            HitObjectKind::Circle => n_circles += 1,
+            HitObjectKind::Slider(_) => n_sliders += 1,
+            HitObjectKind::Spinner(_) | HitObjectKind::Hold(_) => n_spinners += 1,
+        }
+
         let mut h = OsuObject::new(
             h,
             map,
@@ -124,8 +128,9 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
 
     let stars = aim_rating + speed_rating + (aim_rating - speed_rating).abs() / 2.0;
 
-    diff_attributes.n_circles = map.n_circles as usize;
-    diff_attributes.n_spinners = map.n_spinners as usize;
+    diff_attributes.n_circles = n_circles;
+    diff_attributes.n_sliders = n_sliders;
+    diff_attributes.n_spinners = n_spinners;
     diff_attributes.stars = stars as f64;
     diff_attributes.speed_strain = speed_rating as f64;
     diff_attributes.aim_strain = aim_rating as f64;

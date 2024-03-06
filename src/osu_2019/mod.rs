@@ -14,5 +14,3 @@ mod skill_kind;
 use skill_kind::SkillKind;
 
 mod stars;
-
-use rosu_pp::{Beatmap, Mods};

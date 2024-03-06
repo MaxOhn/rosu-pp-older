@@ -1,7 +1,7 @@
 pub mod osu_2014_july;
 pub mod osu_2014_may;
-pub mod osu_2015_february;
 pub mod osu_2015_april;
+pub mod osu_2015_february;
 pub mod osu_2018;
 pub mod osu_2019;
 pub mod osu_2021_january;

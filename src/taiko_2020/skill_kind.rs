@@ -71,7 +71,7 @@ impl SkillKind {
             } => {
                 let prev_is_circle = current.prev.h.is_circle();
                 let base_is_circle = current.base.h.is_circle();
-                let curr_is_rim = current.base.sound.is_rim();
+                let curr_is_rim = current.base.sound.rim();
 
                 if !(current.delta < 1000.0 && prev_is_circle && base_is_circle) {
                     mono_history.clear();

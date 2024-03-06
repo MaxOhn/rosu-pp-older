@@ -11,10 +11,12 @@ use difficulty_object::DifficultyObject;
 use hitobject_rhythm::{closest_rhythm, HitObjectRhythm};
 pub use pp::*;
 use rim::Rim;
-use rosu_pp::{Beatmap, Mods};
+use rosu_pp::Beatmap;
 use skill_kind::SkillKind;
 use stamina_cheese::StaminaCheeseDetector;
 use taiko_object::IntoTaikoObjectIter;
+
+use crate::util::mods::Mods;
 
 use self::skill::Skills;
 
@@ -49,18 +51,13 @@ const STAMINA_SKILL_MULTIPLIER: f64 = 0.02;
 pub struct TaikoStars<'map> {
     map: &'map Beatmap,
     mods: u32,
-    passed_objects: Option<usize>,
 }
 
 impl<'map> TaikoStars<'map> {
     /// Create a new difficulty calculator for osu!taiko maps.
     #[inline]
     pub fn new(map: &'map Beatmap) -> Self {
-        Self {
-            map,
-            mods: 0,
-            passed_objects: None,
-        }
+        Self { map, mods: 0 }
     }
 
     /// Specify mods through their bit values.
@@ -69,18 +66,6 @@ impl<'map> TaikoStars<'map> {
     #[inline]
     pub fn mods(mut self, mods: u32) -> Self {
         self.mods = mods;
-
-        self
-    }
-
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    ///
-    /// If you want to calculate the difficulty after every few objects, instead of
-    /// using [`TaikoStars`] multiple times with different `passed_objects`, you should use
-    /// [`TaikoGradualDifficultyAttributes`](crate::taiko::TaikoGradualDifficultyAttributes).
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects = Some(passed_objects);
 
         self
     }
@@ -117,14 +102,8 @@ impl<'map> TaikoStars<'map> {
     }
 }
 
-fn calculate_skills(params: TaikoStars<'_>) -> (Skills, usize) {
-    let TaikoStars {
-        map,
-        mods,
-        passed_objects,
-    } = params;
-
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
+fn calculate_skills(params: TaikoStars<'_>) -> (Skills, u32) {
+    let TaikoStars { map, mods } = params;
 
     // True if the object at that index is stamina cheese
     let cheese = map.find_cheese();
@@ -132,24 +111,23 @@ fn calculate_skills(params: TaikoStars<'_>) -> (Skills, usize) {
     let clock_rate = mods.clock_rate();
     let mut max_combo = 0;
 
-    match map.hit_objects.get(0) {
-        Some(h) => max_combo += h.is_circle() as usize,
+    match map.hit_objects.first() {
+        Some(h) => max_combo += h.is_circle() as u32,
         None => return (skills, max_combo),
     }
 
     match map.hit_objects.get(1) {
-        Some(h) => max_combo += h.is_circle() as usize,
+        Some(h) => max_combo += h.is_circle() as u32,
         None => return (skills, max_combo),
     }
 
     let mut hit_objects = map
         .taiko_objects()
-        .take(take)
         .enumerate()
         .skip(2)
         .zip(map.taiko_objects().skip(1))
         .zip(map.taiko_objects())
-        .inspect(|(((_, base), _), _)| max_combo += base.h.is_circle() as usize)
+        .inspect(|(((_, base), _), _)| max_combo += base.h.is_circle() as u32)
         .map(|(((idx, base), prev), prev_prev)| {
             DifficultyObject::new(idx, base, prev, prev_prev, clock_rate)
         });
@@ -241,13 +219,13 @@ pub struct TaikoDifficultyAttributes {
     /// The final star rating.
     pub stars: f64,
     /// The maximum combo.
-    pub max_combo: usize,
+    pub max_combo: u32,
 }
 
 impl TaikoDifficultyAttributes {
     /// Return the maximum combo.
     #[inline]
-    pub fn max_combo(&self) -> usize {
+    pub fn max_combo(&self) -> u32 {
         self.max_combo
     }
 }
@@ -280,7 +258,7 @@ impl TaikoPerformanceAttributes {
 
     /// Return the maximum combo of the map.
     #[inline]
-    pub fn max_combo(&self) -> usize {
+    pub fn max_combo(&self) -> u32 {
         self.difficulty.max_combo
     }
 }

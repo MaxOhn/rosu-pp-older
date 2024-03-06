@@ -4,7 +4,7 @@ use std::{
     fmt, iter,
 };
 
-use rosu_pp::parse::Pos2;
+use rosu_map::util::Pos;
 
 use crate::util::math::lerp;
 
@@ -76,7 +76,7 @@ impl From<&DifficultyObject<'_>> for AimHistoryEntry {
 
 #[derive(Clone)]
 pub(crate) struct FlashlightHistoryEntry {
-    end_pos: Pos2,
+    end_pos: Pos,
     is_spinner: bool,
     jump_dist: f64,
     strain_time: f64,

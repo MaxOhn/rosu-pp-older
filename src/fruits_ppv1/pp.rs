@@ -1,9 +1,12 @@
-use super::stars;
-
 use rosu_pp::{
+    any::{DifficultyAttributes, PerformanceAttributes},
     catch::{CatchDifficultyAttributes, CatchPerformanceAttributes},
-    Beatmap, DifficultyAttributes, Mods, PerformanceAttributes,
+    Beatmap,
 };
+
+use crate::util::mods::Mods;
+
+use super::stars;
 
 /// Calculator for pp on osu!ctb maps.
 ///
@@ -37,14 +40,12 @@ pub struct FruitsPP<'m> {
     map: &'m Beatmap,
     attributes: Option<CatchDifficultyAttributes>,
     mods: u32,
-    combo: Option<usize>,
-
-    n_fruits: Option<usize>,
-    n_droplets: Option<usize>,
-    n_tiny_droplets: Option<usize>,
-    n_tiny_droplet_misses: Option<usize>,
-    n_misses: usize,
-    passed_objects: Option<usize>,
+    combo: Option<u32>,
+    n_fruits: Option<u32>,
+    n_droplets: Option<u32>,
+    n_tiny_droplets: Option<u32>,
+    n_tiny_droplet_misses: Option<u32>,
+    n_misses: u32,
 }
 
 impl<'m> FruitsPP<'m> {
@@ -55,13 +56,11 @@ impl<'m> FruitsPP<'m> {
             attributes: None,
             mods: 0,
             combo: None,
-
             n_fruits: None,
             n_droplets: None,
             n_tiny_droplets: None,
             n_tiny_droplet_misses: None,
             n_misses: 0,
-            passed_objects: None,
         }
     }
 
@@ -91,56 +90,48 @@ impl<'m> FruitsPP<'m> {
 
     /// Specify the max combo of the play.
     #[inline]
-    pub fn combo(mut self, combo: usize) -> Self {
-        self.combo.replace(combo);
+    pub fn combo(mut self, combo: u32) -> Self {
+        self.combo = Some(combo);
 
         self
     }
 
     /// Specify the amount of fruits of a play i.e. n300.
     #[inline]
-    pub fn fruits(mut self, n_fruits: usize) -> Self {
-        self.n_fruits.replace(n_fruits);
+    pub fn fruits(mut self, n_fruits: u32) -> Self {
+        self.n_fruits = Some(n_fruits);
 
         self
     }
 
     /// Specify the amount of droplets of a play i.e. n100.
     #[inline]
-    pub fn droplets(mut self, n_droplets: usize) -> Self {
-        self.n_droplets.replace(n_droplets);
+    pub fn droplets(mut self, n_droplets: u32) -> Self {
+        self.n_droplets = Some(n_droplets);
 
         self
     }
 
     /// Specify the amount of tiny droplets of a play i.e. n50.
     #[inline]
-    pub fn tiny_droplets(mut self, n_tiny_droplets: usize) -> Self {
-        self.n_tiny_droplets.replace(n_tiny_droplets);
+    pub fn tiny_droplets(mut self, n_tiny_droplets: u32) -> Self {
+        self.n_tiny_droplets = Some(n_tiny_droplets);
 
         self
     }
 
     /// Specify the amount of tiny droplet misses of a play i.e. n_katu.
     #[inline]
-    pub fn tiny_droplet_misses(mut self, n_tiny_droplet_misses: usize) -> Self {
-        self.n_tiny_droplet_misses.replace(n_tiny_droplet_misses);
+    pub fn tiny_droplet_misses(mut self, n_tiny_droplet_misses: u32) -> Self {
+        self.n_tiny_droplet_misses = Some(n_tiny_droplet_misses);
 
         self
     }
 
     /// Specify the amount of fruit / droplet misses of the play.
     #[inline]
-    pub fn misses(mut self, n_misses: usize) -> Self {
+    pub fn misses(mut self, n_misses: u32) -> Self {
         self.n_misses = n_misses;
-
-        self
-    }
-
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects.replace(passed_objects);
 
         self
     }
@@ -150,8 +141,7 @@ impl<'m> FruitsPP<'m> {
     /// Be sure to set `misses` beforehand! Also, if available, set `attributes` beforehand.
     pub fn accuracy(mut self, mut acc: f32) -> Self {
         if self.attributes.is_none() {
-            self.attributes
-                .replace(stars(self.map, self.mods, self.passed_objects));
+            self.attributes = Some(stars(self.map, self.mods));
         }
 
         let attributes = self.attributes.as_ref().unwrap();
@@ -171,7 +161,7 @@ impl<'m> FruitsPP<'m> {
         acc /= 100.0;
 
         let n_tiny_droplets = self.n_tiny_droplets.unwrap_or_else(|| {
-            ((acc * (max_combo + max_tiny_droplets) as f32).round() as usize)
+            ((acc * (max_combo + max_tiny_droplets) as f32).round() as u32)
                 .saturating_sub(n_fruits)
                 .saturating_sub(n_droplets)
         });
@@ -246,7 +236,7 @@ impl<'m> FruitsPP<'m> {
         let attributes = self
             .attributes
             .take()
-            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects));
+            .unwrap_or_else(|| stars(self.map, self.mods));
 
         let max_combo = attributes.max_combo();
 
@@ -312,20 +302,17 @@ impl<'m> FruitsPP<'m> {
         }
     }
 
-    #[inline]
-    fn combo_hits(&self) -> usize {
+    fn combo_hits(&self) -> u32 {
         self.n_fruits.unwrap_or(0) + self.n_droplets.unwrap_or(0) + self.n_misses
     }
 
-    #[inline]
-    fn successful_hits(&self) -> usize {
+    fn successful_hits(&self) -> u32 {
         self.n_fruits.unwrap_or(0)
             + self.n_droplets.unwrap_or(0)
             + self.n_tiny_droplets.unwrap_or(0)
     }
 
-    #[inline]
-    fn total_hits(&self) -> usize {
+    fn total_hits(&self) -> u32 {
         self.successful_hits() + self.n_tiny_droplet_misses.unwrap_or(0) + self.n_misses
     }
 

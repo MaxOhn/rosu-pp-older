@@ -1,4 +1,4 @@
-use rosu_pp::parse::Pos2;
+use rosu_map::util::Pos;
 
 use super::NORMALIZED_RADIUS;
 
@@ -45,7 +45,9 @@ impl ScalingFactor {
         self.radius
     }
 
-    pub(crate) fn stack_offset(&self, stack_height: f32) -> Pos2 {
-        Pos2::new(stack_height * self.scale)
+    pub(crate) fn stack_offset(&self, stack_height: f32) -> Pos {
+        let pos = stack_height * self.scale;
+
+        Pos::new(pos, pos)
     }
 }

@@ -1,8 +1,12 @@
-use crate::util::math::difficulty_range;
+use rosu_pp::{
+    any::{DifficultyAttributes, PerformanceAttributes},
+    model::hit_object::HitObject,
+    Beatmap,
+};
+
+use crate::util::{math::difficulty_range, mods::Mods};
 
 use super::{stars, TaikoDifficultyAttributes, TaikoPerformanceAttributes};
-
-use rosu_pp::{Beatmap, DifficultyAttributes, Mods, PerformanceAttributes};
 
 /// Calculator for pp on osu!taiko maps.
 ///
@@ -36,14 +40,11 @@ pub struct TaikoPP<'m> {
     map: &'m Beatmap,
     stars: Option<f32>,
     mods: u32,
-    max_combo: usize,
-    combo: Option<usize>,
+    combo: Option<u32>,
     acc: f32,
-    n_misses: usize,
-    passed_objects: Option<usize>,
-
-    n300: Option<usize>,
-    n100: Option<usize>,
+    n_misses: u32,
+    n300: Option<u32>,
+    n100: Option<u32>,
 }
 
 impl<'m> TaikoPP<'m> {
@@ -53,11 +54,9 @@ impl<'m> TaikoPP<'m> {
             map,
             stars: None,
             mods: 0,
-            max_combo: map.n_circles as usize,
             combo: None,
             acc: 1.0,
             n_misses: 0,
-            passed_objects: None,
             n300: None,
             n100: None,
         }
@@ -89,7 +88,7 @@ impl<'m> TaikoPP<'m> {
 
     /// Specify the max combo of the play.
     #[inline]
-    pub fn combo(mut self, combo: usize) -> Self {
+    pub fn combo(mut self, combo: u32) -> Self {
         self.combo.replace(combo);
 
         self
@@ -97,7 +96,7 @@ impl<'m> TaikoPP<'m> {
 
     /// Specify the amount of 300s of a play.
     #[inline]
-    pub fn n300(mut self, n300: usize) -> Self {
+    pub fn n300(mut self, n300: u32) -> Self {
         self.n300.replace(n300);
 
         self
@@ -105,7 +104,7 @@ impl<'m> TaikoPP<'m> {
 
     /// Specify the amount of 100s of a play.
     #[inline]
-    pub fn n100(mut self, n100: usize) -> Self {
+    pub fn n100(mut self, n100: u32) -> Self {
         self.n100.replace(n100);
 
         self
@@ -113,8 +112,8 @@ impl<'m> TaikoPP<'m> {
 
     /// Specify the amount of misses of the play.
     #[inline]
-    pub fn misses(mut self, n_misses: usize) -> Self {
-        self.n_misses = n_misses.min(self.map.n_circles as usize);
+    pub fn misses(mut self, n_misses: u32) -> Self {
+        self.n_misses = n_misses;
 
         self
     }
@@ -129,22 +128,21 @@ impl<'m> TaikoPP<'m> {
         self
     }
 
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects.replace(passed_objects);
-
-        self
-    }
-
     /// Returns an object which contains the pp and stars.
     pub fn calculate(mut self) -> TaikoPerformanceAttributes {
         let stars = self
             .stars
-            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects).stars as f32);
+            .unwrap_or_else(|| stars(self.map, self.mods).stars as f32);
+
+        let n_hits = self
+            .map
+            .hit_objects
+            .iter()
+            .map(HitObject::is_circle)
+            .count() as u32;
 
         if self.n300.or(self.n100).is_some() {
-            let total = self.map.n_circles as usize;
+            let total = n_hits;
             let misses = self.n_misses;
 
             let mut n300 = self.n300.unwrap_or(0).min(total - misses);
@@ -173,15 +171,15 @@ impl<'m> TaikoPP<'m> {
             multiplier *= 1.1;
         }
 
-        let strain_value = self.compute_strain_value(stars);
-        let acc_value = self.compute_accuracy_value();
+        let strain_value = self.compute_strain_value(stars, n_hits);
+        let acc_value = self.compute_accuracy_value(n_hits);
 
         let pp = (strain_value.powf(1.1) + acc_value.powf(1.1)).powf(1.0 / 1.1) * multiplier;
 
         TaikoPerformanceAttributes {
             difficulty: TaikoDifficultyAttributes {
                 stars: stars as f64,
-                max_combo: self.map.n_circles as usize,
+                max_combo: n_hits,
             },
             pp: pp as f64,
             pp_acc: acc_value as f64,
@@ -189,20 +187,20 @@ impl<'m> TaikoPP<'m> {
         }
     }
 
-    fn compute_strain_value(&self, stars: f32) -> f32 {
+    fn compute_strain_value(&self, stars: f32, max_combo: u32) -> f32 {
         let exp_base = 5.0 * (stars / 0.0075).max(1.0) - 4.0;
         let mut strain = exp_base * exp_base / 100_000.0;
 
         // Longer maps are worth more
-        let len_bonus = 1.0 + 0.1 * (self.max_combo as f32 / 1500.0).min(1.0);
+        let len_bonus = 1.0 + 0.1 * (max_combo as f32 / 1500.0).min(1.0);
         strain *= len_bonus;
 
         // Penalize misses exponentially
         strain *= 0.985_f32.powi(self.n_misses as i32);
 
         // Combo scaling
-        if let Some(combo) = self.combo.filter(|_| self.max_combo > 0) {
-            strain *= (combo as f32 / self.max_combo as f32).sqrt().min(1.0);
+        if let Some(combo) = self.combo.filter(|_| max_combo > 0) {
+            strain *= (combo as f32 / max_combo as f32).sqrt().min(1.0);
         }
 
         // HD bonus
@@ -220,7 +218,7 @@ impl<'m> TaikoPP<'m> {
     }
 
     #[inline]
-    fn compute_accuracy_value(&self) -> f32 {
+    fn compute_accuracy_value(&self, max_combo: u32) -> f32 {
         let mut od = self.map.od;
 
         if self.mods.hr() {
@@ -234,7 +232,7 @@ impl<'m> TaikoPP<'m> {
         (150.0 / hit_window as f32).powf(1.1)
             * self.acc.powi(15)
             * 22.0
-            * (self.max_combo as f32 / 1500.0).powf(0.3).min(1.15)
+            * (max_combo as f32 / 1500.0).powf(0.3).min(1.15)
     }
 }
 

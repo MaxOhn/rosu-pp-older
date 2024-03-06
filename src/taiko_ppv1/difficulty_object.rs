@@ -1,6 +1,6 @@
-use super::rim::Rim;
+use rosu_pp::model::hit_object::{HitObject, HitSoundType};
 
-use rosu_pp::parse::HitObject;
+use super::rim::Rim;
 
 #[derive(Clone, Debug)]
 pub(crate) struct DifficultyObject<'o> {
@@ -13,12 +13,12 @@ pub(crate) struct DifficultyObject<'o> {
 impl<'o> DifficultyObject<'o> {
     #[inline]
     pub(crate) fn new(
-        (base, base_sound): (&'o HitObject, &u8),
-        (prev, prev_sound): (&'o HitObject, &u8),
+        (base, base_sound): (&'o HitObject, &HitSoundType),
+        (prev, prev_sound): (&'o HitObject, &HitSoundType),
         clock_rate: f32,
     ) -> Self {
         let delta = (base.start_time as f32 - prev.start_time as f32) / clock_rate;
-        let has_type_change = prev_sound.is_rim() != base_sound.is_rim();
+        let has_type_change = prev_sound.rim() != base_sound.rim();
 
         Self {
             base,

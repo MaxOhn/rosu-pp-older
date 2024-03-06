@@ -1,4 +1,4 @@
-use rosu_pp::parse::Pos2;
+use rosu_map::util::Pos;
 
 use super::FruitParams;
 
@@ -16,7 +16,7 @@ pub struct CatchObject {
 
 impl CatchObject {
     #[inline]
-    pub(crate) fn new((pos, time): (Pos2, f64)) -> Self {
+    pub(crate) fn new((pos, time): (Pos, f64)) -> Self {
         Self {
             pos: pos.x,
             time,

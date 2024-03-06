@@ -1,4 +1,6 @@
-use rosu_pp::{Beatmap, Mods};
+use rosu_pp::Beatmap;
+
+use crate::util::mods::Mods;
 
 use super::{ManiaDifficultyAttributes, ManiaPerformanceAttributes, ManiaStars};
 
@@ -35,8 +37,7 @@ pub struct ManiaPP<'map> {
     map: &'map Beatmap,
     stars: Option<f64>,
     mods: u32,
-    pub(crate) score: Option<f64>,
-    passed_objects: Option<usize>,
+    score: Option<f64>,
 }
 
 impl<'map> ManiaPP<'map> {
@@ -48,7 +49,6 @@ impl<'map> ManiaPP<'map> {
             stars: None,
             mods: 0,
             score: None,
-            passed_objects: None,
         }
     }
 
@@ -83,45 +83,19 @@ impl<'map> ManiaPP<'map> {
         self
     }
 
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    ///
-    /// Be sure you also set [`score`](ManiaPP::score) or the final values
-    /// won't be correct because it will incorrectly assume a score of 1,000,000.
-    ///
-    /// If you want to calculate the performance after every few objects, instead of
-    /// using [`ManiaPP`] multiple times with different `passed_objects`, you should use
-    /// [`ManiaGradualPerformanceAttributes`](crate::mania::ManiaGradualPerformanceAttributes).
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects.replace(passed_objects);
-
-        self
-    }
-
     /// Calculate all performance related values, including pp and stars.
     pub fn calculate(self) -> ManiaPerformanceAttributes {
-        let stars = self.stars.unwrap_or_else(|| {
-            ManiaStars::new(self.map)
-                .mods(self.mods)
-                .passed_objects(self.passed_objects.unwrap_or(usize::MAX))
-                .calculate()
-                .stars
-        });
+        let stars = self
+            .stars
+            .unwrap_or_else(|| ManiaStars::new(self.map).mods(self.mods).calculate().stars);
 
         let ez = self.mods.ez();
         let nf = self.mods.nf();
         let ht = self.mods.ht();
 
-        let mut scaled_score = self.score.map_or(1_000_000.0, |score| {
+        let scaled_score = self.score.map_or(1_000_000.0, |score| {
             score / 0.5_f64.powi(ez as i32 + nf as i32 + ht as i32)
         });
-
-        if let Some(passed_objects) = self.passed_objects {
-            let percent_passed =
-                passed_objects as f64 / (self.map.n_circles + self.map.n_sliders) as f64;
-
-            scaled_score /= percent_passed;
-        }
 
         let mut od = 34.0 + 3.0 * (10.0 - self.map.od as f64).clamp(0.0, 10.0);
         let clock_rate = self.mods.clock_rate();

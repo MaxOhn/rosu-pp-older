@@ -1,4 +1,6 @@
-use rosu_pp::{osu::OsuScoreState, Beatmap, Mods};
+use rosu_pp::{osu::OsuScoreState, Beatmap};
+
+use crate::util::mods::Mods;
 
 use super::{OsuDifficultyAttributes, OsuPerformanceAttributes};
 
@@ -38,13 +40,11 @@ pub struct OsuPP<'map> {
     attributes: Option<OsuDifficultyAttributes>,
     mods: u32,
     acc: Option<f64>,
-    pub(crate) combo: Option<usize>,
-
-    pub(crate) n300: Option<usize>,
-    pub(crate) n100: Option<usize>,
-    pub(crate) n50: Option<usize>,
-    pub(crate) n_misses: usize,
-    pub(crate) passed_objects: Option<usize>,
+    combo: Option<u32>,
+    n300: Option<u32>,
+    n100: Option<u32>,
+    n50: Option<u32>,
+    n_misses: u32,
 }
 
 impl<'map> OsuPP<'map> {
@@ -57,12 +57,10 @@ impl<'map> OsuPP<'map> {
             mods: 0,
             acc: None,
             combo: None,
-
             n300: None,
             n100: None,
             n50: None,
             n_misses: 0,
-            passed_objects: None,
         }
     }
 
@@ -90,7 +88,7 @@ impl<'map> OsuPP<'map> {
 
     /// Specify the max combo of the play.
     #[inline]
-    pub fn combo(mut self, combo: usize) -> Self {
+    pub fn combo(mut self, combo: u32) -> Self {
         self.combo.replace(combo);
 
         self
@@ -98,7 +96,7 @@ impl<'map> OsuPP<'map> {
 
     /// Specify the amount of 300s of a play.
     #[inline]
-    pub fn n300(mut self, n300: usize) -> Self {
+    pub fn n300(mut self, n300: u32) -> Self {
         self.n300.replace(n300);
 
         self
@@ -106,7 +104,7 @@ impl<'map> OsuPP<'map> {
 
     /// Specify the amount of 100s of a play.
     #[inline]
-    pub fn n100(mut self, n100: usize) -> Self {
+    pub fn n100(mut self, n100: u32) -> Self {
         self.n100.replace(n100);
 
         self
@@ -114,7 +112,7 @@ impl<'map> OsuPP<'map> {
 
     /// Specify the amount of 50s of a play.
     #[inline]
-    pub fn n50(mut self, n50: usize) -> Self {
+    pub fn n50(mut self, n50: u32) -> Self {
         self.n50.replace(n50);
 
         self
@@ -122,20 +120,8 @@ impl<'map> OsuPP<'map> {
 
     /// Specify the amount of misses of a play.
     #[inline]
-    pub fn misses(mut self, n_misses: usize) -> Self {
+    pub fn misses(mut self, n_misses: u32) -> Self {
         self.n_misses = n_misses;
-
-        self
-    }
-
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    ///
-    /// If you want to calculate the performance after every few objects, instead of
-    /// using [`OsuPP`] multiple times with different `passed_objects`, you should use
-    /// [`OsuGradualPerformanceAttributes`](crate::osu::OsuGradualPerformanceAttributes).
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects.replace(passed_objects);
 
         self
     }
@@ -148,14 +134,14 @@ impl<'map> OsuPP<'map> {
             n300,
             n100,
             n50,
-            n_misses,
+            misses,
         } = state;
 
         self.combo = Some(max_combo);
         self.n300 = Some(n300);
         self.n100 = Some(n100);
         self.n50 = Some(n50);
-        self.n_misses = n_misses;
+        self.n_misses = misses;
 
         self
     }
@@ -163,9 +149,8 @@ impl<'map> OsuPP<'map> {
     /// Generate the hit results with respect to the given accuracy between `0` and `100`.
     ///
     /// Be sure to set `misses` beforehand!
-    /// In case of a partial play, be also sure to set `passed_objects` beforehand!
     pub fn accuracy(mut self, acc: f64) -> Self {
-        let n_objects = self.passed_objects.unwrap_or(self.map.hit_objects.len());
+        let n_objects = self.map.hit_objects.len() as u32;
 
         let mut acc = acc / 100.0;
 
@@ -176,7 +161,7 @@ impl<'map> OsuPP<'map> {
             let placed_points = 2 * n100 + n50 + self.n_misses;
             let missing_objects = n_objects - n100 - n50 - self.n_misses;
             let missing_points =
-                ((6.0 * acc * n_objects as f64).round() as usize).saturating_sub(placed_points);
+                ((6.0 * acc * n_objects as f64).round() as u32).saturating_sub(placed_points);
 
             let mut n300 = missing_objects.min(missing_points / 6);
             n50 += missing_objects - n300;
@@ -198,7 +183,7 @@ impl<'map> OsuPP<'map> {
             acc = (6 * n300 + 2 * n100 + n50) as f64 / (6 * n_objects) as f64;
         } else {
             let misses = self.n_misses.min(n_objects);
-            let target_total = (acc * n_objects as f64 * 6.0).round() as usize;
+            let target_total = (acc * n_objects as f64 * 6.0).round() as u32;
             let delta = target_total - (n_objects - misses);
 
             let mut n300 = delta / 5;
@@ -228,7 +213,7 @@ impl<'map> OsuPP<'map> {
         let mut n100 = self.n100;
         let mut n50 = self.n50;
 
-        let n_objects = self.passed_objects.unwrap_or(self.map.hit_objects.len());
+        let n_objects = self.map.hit_objects.len() as u32;
 
         if let Some(acc) = self.acc {
             let n300 = n300.unwrap_or(0);
@@ -252,7 +237,7 @@ impl<'map> OsuPP<'map> {
                 effective_misses,
             }
         } else {
-            let n_objects = self.passed_objects.unwrap_or(self.map.hit_objects.len());
+            let n_objects = self.map.hit_objects.len() as u32;
 
             let remaining = n_objects
                 .saturating_sub(n300.unwrap_or(0))
@@ -310,7 +295,7 @@ impl<'map> OsuPP<'map> {
         let attributes = self
             .attributes
             .take()
-            .unwrap_or_else(|| super::stars(self.map, self.mods, self.passed_objects));
+            .unwrap_or_else(|| super::stars(self.map, self.mods));
 
         self.assert_hitresults(attributes).calculate()
     }
@@ -320,14 +305,14 @@ struct OsuPPInner {
     attributes: OsuDifficultyAttributes,
     mods: u32,
     acc: f64,
-    combo: Option<usize>,
+    combo: Option<u32>,
 
-    n300: usize,
-    n100: usize,
-    n50: usize,
+    n300: u32,
+    n100: u32,
+    n50: u32,
 
     total_hits: f64,
-    effective_misses: usize,
+    effective_misses: u32,
 }
 
 impl OsuPPInner {
@@ -351,7 +336,7 @@ impl OsuPPInner {
             // * the result can be higher than total hits in specific scenarios
             // * (which breaks some calculations) so we need to clamp it.
             self.effective_misses =
-                (self.effective_misses + self.n100 + self.n50).min(self.total_hits as usize);
+                (self.effective_misses + self.n100 + self.n50).min(self.total_hits as u32);
 
             multiplier *= 0.6;
         }
@@ -591,10 +576,10 @@ impl OsuPPInner {
 
 fn calculate_effective_misses(
     attributes: &OsuDifficultyAttributes,
-    combo: Option<usize>,
-    n_misses: usize,
+    combo: Option<u32>,
+    n_misses: u32,
     total_hits: f64,
-) -> usize {
+) -> u32 {
     // * Guess the number of misses + slider breaks from combo
     let mut combo_based_misses: f64 = 0.0;
 
@@ -612,7 +597,7 @@ fn calculate_effective_misses(
     // * higher than total hits and that breaks some calculations
     combo_based_misses = combo_based_misses.min(total_hits);
 
-    n_misses.max(combo_based_misses.floor() as usize)
+    n_misses.max(combo_based_misses.floor() as u32)
 }
 
 /// Abstract type to provide flexibility when passing difficulty attributes to a performance calculation.
@@ -632,95 +617,5 @@ impl OsuAttributeProvider for OsuPerformanceAttributes {
     #[inline]
     fn attributes(self) -> Option<OsuDifficultyAttributes> {
         Some(self.difficulty)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn osu_only_accuracy() {
-        let map = Beatmap::default();
-
-        let total_objects = 1234;
-        let target_acc = 97.5;
-
-        let calculator = OsuPP::new(&map)
-            .passed_objects(total_objects)
-            .accuracy(target_acc);
-
-        let numerator = 6 * calculator.n300.unwrap_or(0)
-            + 2 * calculator.n100.unwrap_or(0)
-            + calculator.n50.unwrap_or(0);
-        let denominator = 6 * total_objects;
-        let acc = 100.0 * numerator as f64 / denominator as f64;
-
-        assert!(
-            (target_acc - acc).abs() < 1.0,
-            "Expected: {} | Actual: {}",
-            target_acc,
-            acc
-        );
-    }
-
-    #[test]
-    fn osu_accuracy_and_n50() {
-        let map = Beatmap::default();
-
-        let total_objects = 1234;
-        let target_acc = 97.5;
-        let n50 = 30;
-
-        let calculator = OsuPP::new(&map)
-            .passed_objects(total_objects)
-            .n50(n50)
-            .accuracy(target_acc);
-
-        assert!(
-            (calculator.n50.unwrap() as i32 - n50 as i32).abs() <= 4,
-            "Expected: {} | Actual: {}",
-            n50,
-            calculator.n50.unwrap()
-        );
-
-        let numerator = 6 * calculator.n300.unwrap_or(0)
-            + 2 * calculator.n100.unwrap_or(0)
-            + calculator.n50.unwrap_or(0);
-        let denominator = 6 * total_objects;
-        let acc = 100.0 * numerator as f64 / denominator as f64;
-
-        assert!(
-            (target_acc - acc).abs() < 1.0,
-            "Expected: {} | Actual: {}",
-            target_acc,
-            acc
-        );
-    }
-
-    #[test]
-    fn osu_missing_objects() {
-        let map = Beatmap::default();
-        let attributes = OsuDifficultyAttributes::default();
-
-        let total_objects = 1234;
-        let n300 = 1000;
-        let n100 = 200;
-        let n50 = 30;
-
-        let calculator = OsuPP::new(&map)
-            .passed_objects(total_objects)
-            .n300(n300)
-            .n100(n100)
-            .n50(n50)
-            .assert_hitresults(attributes);
-
-        let n_objects = calculator.n300 + calculator.n100 + calculator.n50;
-
-        assert_eq!(
-            total_objects, n_objects,
-            "Expected: {} | Actual: {}",
-            total_objects, n_objects
-        );
     }
 }

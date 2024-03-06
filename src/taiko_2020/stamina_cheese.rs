@@ -1,4 +1,4 @@
-use rosu_pp::Beatmap;
+use rosu_pp::{model::hit_object::HitSoundType, Beatmap};
 
 use crate::util::limited_queue::LimitedQueue;
 
@@ -34,7 +34,7 @@ impl StaminaCheeseDetector for Beatmap {
         let mut index_before_last_repeat = -1;
         let mut last_mark_end = 0;
 
-        for (i, &h) in self.sounds.iter().enumerate() {
+        for (i, &h) in self.hit_sounds.iter().enumerate() {
             history.push(h);
 
             if !history.full() {
@@ -65,8 +65,8 @@ impl StaminaCheeseDetector for Beatmap {
         let mut tl_len = -2;
         let mut last_mark_end = 0;
 
-        for (i, &sound) in self.sounds.iter().enumerate().skip(parity).step_by(2) {
-            if sound.is_rim() == is_rin {
+        for (i, &sound) in self.hit_sounds.iter().enumerate().skip(parity).step_by(2) {
+            if sound.rim() == is_rin {
                 tl_len += 2;
             } else {
                 tl_len = -2;
@@ -97,9 +97,9 @@ fn mark_as_cheese(start: usize, end: usize, cheese: &mut [bool]) {
 }
 
 #[inline]
-fn contains_pattern_repeat(history: &LimitedQueue<u8>, pattern_len: usize) -> bool {
+fn contains_pattern_repeat(history: &LimitedQueue<HitSoundType>, pattern_len: usize) -> bool {
     for (&curr, &to_compare) in history.iter().zip(history.iter().skip(pattern_len)) {
-        if curr.is_rim() != to_compare.is_rim() {
+        if curr.rim() != to_compare.rim() {
             return false;
         }
     }

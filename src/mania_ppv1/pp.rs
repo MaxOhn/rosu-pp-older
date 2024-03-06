@@ -1,6 +1,11 @@
-use super::{stars, ManiaDifficultyAttributes, ManiaPerformanceAttributes};
+use rosu_pp::{
+    any::{DifficultyAttributes, PerformanceAttributes},
+    Beatmap,
+};
 
-use rosu_pp::{Beatmap, DifficultyAttributes, Mods, PerformanceAttributes};
+use crate::util::mods::Mods;
+
+use super::{stars, ManiaDifficultyAttributes, ManiaPerformanceAttributes};
 
 /// Calculator for pp on osu!mania maps.
 ///
@@ -34,7 +39,6 @@ pub struct ManiaPP<'m> {
     mods: u32,
     score: Option<f32>,
     acc: f32,
-    passed_objects: Option<usize>,
 }
 
 impl<'m> ManiaPP<'m> {
@@ -46,7 +50,6 @@ impl<'m> ManiaPP<'m> {
             mods: 0,
             score: None,
             acc: 1.0,
-            passed_objects: None,
         }
     }
 
@@ -58,7 +61,7 @@ impl<'m> ManiaPP<'m> {
     #[inline]
     pub fn attributes(mut self, attributes: impl ManiaAttributeProvider) -> Self {
         if let Some(stars) = attributes.attributes() {
-            self.stars.replace(stars);
+            self.stars = Some(stars);
         }
 
         self
@@ -91,34 +94,19 @@ impl<'m> ManiaPP<'m> {
         self
     }
 
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects.replace(passed_objects);
-
-        self
-    }
-
     /// Returns an object which contains the pp and stars.
     pub fn calculate(self) -> ManiaPerformanceAttributes {
         let stars = self
             .stars
-            .unwrap_or_else(|| stars(self.map, self.mods, self.passed_objects).stars as f32);
+            .unwrap_or_else(|| stars(self.map, self.mods).stars as f32);
 
         let ez = self.mods.ez();
         let nf = self.mods.nf();
         let ht = self.mods.ht();
 
-        let mut scaled_score = self.score.map_or(1_000_000.0, |score| {
+        let scaled_score = self.score.map_or(1_000_000.0, |score| {
             score / 0.5_f32.powi(ez as i32 + nf as i32 + ht as i32)
         });
-
-        if let Some(passed_objects) = self.passed_objects {
-            let percent_passed =
-                passed_objects as f32 / (self.map.n_circles + self.map.n_sliders) as f32;
-
-            scaled_score /= percent_passed;
-        }
 
         let mut multiplier = 1.1;
 

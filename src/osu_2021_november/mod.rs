@@ -10,12 +10,13 @@ use std::mem;
 use difficulty_object::DifficultyObject;
 use osu_object::{ObjectParameters, OsuObject};
 pub use pp::*;
-use rosu_pp::{Beatmap, Mods};
+use rosu_map::section::hit_objects::CurveBuffers;
+use rosu_pp::Beatmap;
 use scaling_factor::ScalingFactor;
 use skill::Skill;
 use skill_kind::SkillKind;
 
-use crate::util::curve::CurveBuffers;
+use crate::util::mods::Mods;
 
 use self::skill::Skills;
 
@@ -25,14 +26,8 @@ const NORMALIZED_RADIUS: f32 = 50.0; // * diameter of 100; easier mental maths.
 const STACK_DISTANCE: f32 = 3.0;
 
 /// Difficulty calculation for osu!standard maps.
-///
-/// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-///
-/// If you want to calculate the difficulty after every few objects, instead of
-/// calling this function multiple times with different `passed_objects`, you should use
-/// [`OsuGradualDifficultyAttributes`](crate::osu::OsuGradualDifficultyAttributes).
-pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDifficultyAttributes {
-    let (mut skills, mut attributes) = calculate_skills(map, mods, passed_objects);
+pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
+    let (mut skills, mut attributes) = calculate_skills(map, mods);
 
     let aim_rating = {
         let aim = skills.aim();
@@ -112,13 +107,7 @@ fn calculate_star_rating(aim_rating: f64, speed_rating: f64, flashlight_rating: 
     }
 }
 
-fn calculate_skills(
-    map: &Beatmap,
-    mods: u32,
-    passed_objects: Option<usize>,
-) -> (Skills, OsuDifficultyAttributes) {
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
-
+fn calculate_skills(map: &Beatmap, mods: u32) -> (Skills, OsuDifficultyAttributes) {
     let map_attrs = map.attributes().mods(mods).build();
     let hit_window = map_attrs.hit_windows.od;
 
@@ -144,7 +133,6 @@ fn calculate_skills(
     let mut hit_objects: Vec<_> = map
         .hit_objects
         .iter()
-        .take(take)
         .map(|h| OsuObject::new(h, hr, &mut params))
         .collect();
 
@@ -387,13 +375,13 @@ pub struct OsuDifficultyAttributes {
     /// The final star rating
     pub stars: f64,
     /// The maximum combo.
-    pub max_combo: usize,
+    pub max_combo: u32,
 }
 
 impl OsuDifficultyAttributes {
     /// Return the maximum combo.
     #[inline]
-    pub fn max_combo(&self) -> usize {
+    pub fn max_combo(&self) -> u32 {
         self.max_combo
     }
 }
@@ -430,7 +418,7 @@ impl OsuPerformanceAttributes {
 
     /// Return the maximum combo of the map.
     #[inline]
-    pub fn max_combo(&self) -> usize {
+    pub fn max_combo(&self) -> u32 {
         self.difficulty.max_combo
     }
 }

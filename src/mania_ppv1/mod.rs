@@ -2,24 +2,17 @@ mod pp;
 mod strain;
 
 pub use pp::*;
+use rosu_pp::{model::hit_object::HitObject, Beatmap};
 use strain::Strain;
 
-use rosu_pp::{parse::HitObject, Beatmap, Mods};
+use crate::util::mods::Mods;
 
 const SECTION_LEN: f32 = 400.0;
 const STAR_SCALING_FACTOR: f32 = 0.018;
 
 /// Star calculation for osu!mania maps
-///
-/// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(
-    map: &Beatmap,
-    mods: impl Mods,
-    passed_objects: Option<usize>,
-) -> ManiaDifficultyAttributes {
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
-
-    if take < 2 {
+pub fn stars(map: &Beatmap, mods: u32) -> ManiaDifficultyAttributes {
+    if map.hit_objects.len() < 2 {
         return ManiaDifficultyAttributes::default();
     }
 
@@ -32,7 +25,6 @@ pub fn stars(
     let mut hit_objects = map
         .hit_objects
         .iter()
-        .take(take)
         .skip(1)
         .zip(map.hit_objects.iter())
         .map(|(base, prev)| DifficultyHitObject::new(base, prev, map.cs, clock_rate));

@@ -5,26 +5,20 @@ mod strain;
 
 use difficulty_object::DifficultyObject;
 pub use pp::*;
+use rosu_pp::{model::hit_object::HitObject, Beatmap};
 use strain::Strain;
 
-use rosu_pp::{Beatmap, Mods};
+use crate::util::mods::Mods;
 
 const SECTION_LEN: f32 = 400.0;
 
 const STAR_SCALING_FACTOR: f32 = 0.04125;
 
 /// Star calculation for osu!taiko maps.
-///
-/// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(
-    map: &Beatmap,
-    mods: impl Mods,
-    passed_objects: Option<usize>,
-) -> TaikoDifficultyAttributes {
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
-    let max_combo = map.n_circles as usize;
+pub fn stars(map: &Beatmap, mods: u32) -> TaikoDifficultyAttributes {
+    let max_combo = map.hit_objects.iter().map(HitObject::is_circle).count() as u32;
 
-    if take < 2 {
+    if map.hit_objects.len() < 2 {
         return TaikoDifficultyAttributes {
             stars: 0.0,
             max_combo,
@@ -41,10 +35,9 @@ pub fn stars(
     let mut hit_objects = map
         .hit_objects
         .iter()
-        .take(take)
-        .zip(map.sounds.iter())
+        .zip(map.hit_sounds.iter())
         .skip(1)
-        .zip(map.hit_objects.iter().zip(map.sounds.iter()))
+        .zip(map.hit_objects.iter().zip(map.hit_sounds.iter()))
         .map(|(base, prev)| DifficultyObject::new(base, prev, clock_rate));
 
     let mut strain = Strain::new();
@@ -81,7 +74,7 @@ pub struct TaikoDifficultyAttributes {
     /// The final star rating.
     pub stars: f64,
     /// The maximum combo.
-    pub max_combo: usize,
+    pub max_combo: u32,
 }
 
 pub struct TaikoPerformanceAttributes {
@@ -98,7 +91,7 @@ pub struct TaikoPerformanceAttributes {
 impl TaikoPerformanceAttributes {
     /// Return the maximum combo of the map.
     #[inline]
-    pub fn max_combo(&self) -> usize {
+    pub fn max_combo(&self) -> u32 {
         self.difficulty.max_combo
     }
 }

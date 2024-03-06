@@ -1,11 +1,14 @@
 use std::slice::Iter;
 
-use rosu_pp::{parse::HitObject, Beatmap};
+use rosu_pp::{
+    model::hit_object::{HitObject, HitSoundType},
+    Beatmap,
+};
 
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct TaikoObject<'h> {
     pub(crate) h: &'h HitObject,
-    pub(crate) sound: u8,
+    pub(crate) sound: HitSoundType,
 }
 
 pub(crate) trait IntoTaikoObjectIter {
@@ -15,7 +18,7 @@ pub(crate) trait IntoTaikoObjectIter {
 #[derive(Clone, Debug)]
 pub(crate) struct TaikoObjectIter<'m> {
     hit_objects: Iter<'m, HitObject>,
-    sounds: Iter<'m, u8>,
+    sounds: Iter<'m, HitSoundType>,
 }
 
 impl IntoTaikoObjectIter for Beatmap {
@@ -23,7 +26,7 @@ impl IntoTaikoObjectIter for Beatmap {
     fn taiko_objects(&self) -> TaikoObjectIter<'_> {
         TaikoObjectIter {
             hit_objects: self.hit_objects.iter(),
-            sounds: self.sounds.iter(),
+            sounds: self.hit_sounds.iter(),
         }
     }
 }

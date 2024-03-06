@@ -1,12 +1,9 @@
-//! The positional offset of notes created by stack leniency is not considered.
-//! This means the jump distance inbetween notes might be slightly off, resulting in small inaccuracies.
-//! Since calculating these offsets is relatively expensive though, this version is faster than `all_included`.
-
-use crate::util::curve::CurveBuffers;
+use crate::util::mods::Mods;
 
 use super::{DifficultyObject, OsuObject, Skill, SkillKind};
 
-use rosu_pp::{Beatmap, Mods};
+use rosu_map::section::hit_objects::CurveBuffers;
+use rosu_pp::Beatmap;
 
 const OBJECT_RADIUS: f32 = 64.0;
 const SECTION_LEN: f32 = 400.0;
@@ -24,11 +21,7 @@ const OD_MAX: f64 = 19.5;
 /// it has generally little effect on stars, the results are close to perfect.
 /// This version is considerably more efficient than `all_included` since
 /// processing stack leniency is relatively expensive.
-///
-/// In case of a partial play, e.g. a fail, one can specify the amount of passed objects.
-pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDifficultyAttributes {
-    let take = passed_objects.unwrap_or(map.hit_objects.len());
-
+pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
     let map_attributes = map.attributes().mods(mods).build();
 
     let mod_mult = match (mods.hr(), mods.ez()) {
@@ -43,7 +36,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
         ..Default::default()
     };
 
-    if take < 2 {
+    if map.hit_objects.len() < 2 {
         return diff_attributes;
     }
 
@@ -59,7 +52,7 @@ pub fn stars(map: &Beatmap, mods: u32, passed_objects: Option<usize>) -> OsuDiff
     let mut ticks_buf = Vec::new();
     let mut curve_bufs = CurveBuffers::default();
 
-    let mut hit_objects = map.hit_objects.iter().take(take).map(|h| {
+    let mut hit_objects = map.hit_objects.iter().map(|h| {
         OsuObject::new(
             h,
             map,

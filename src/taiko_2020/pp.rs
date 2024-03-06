@@ -1,6 +1,6 @@
-use rosu_pp::{taiko::TaikoScoreState, Beatmap, Mods};
+use rosu_pp::{taiko::TaikoScoreState, Beatmap};
 
-use crate::util::math::difficulty_range;
+use crate::util::{math::difficulty_range, mods::Mods};
 
 use super::{TaikoDifficultyAttributes, TaikoPerformanceAttributes, TaikoStars};
 
@@ -39,13 +39,11 @@ pub struct TaikoPP<'map> {
     map: &'map Beatmap,
     attributes: Option<TaikoDifficultyAttributes>,
     mods: u32,
-    combo: Option<usize>,
+    combo: Option<u32>,
     acc: f64,
-    passed_objects: Option<usize>,
-
-    pub(crate) n300: Option<usize>,
-    pub(crate) n100: Option<usize>,
-    pub(crate) n_misses: usize,
+    n300: Option<u32>,
+    n100: Option<u32>,
+    n_misses: u32,
 }
 
 impl<'map> TaikoPP<'map> {
@@ -59,7 +57,6 @@ impl<'map> TaikoPP<'map> {
             combo: None,
             acc: 1.0,
             n_misses: 0,
-            passed_objects: None,
             n300: None,
             n100: None,
         }
@@ -89,7 +86,7 @@ impl<'map> TaikoPP<'map> {
 
     /// Specify the max combo of the play.
     #[inline]
-    pub fn combo(mut self, combo: usize) -> Self {
+    pub fn combo(mut self, combo: u32) -> Self {
         self.combo.replace(combo);
 
         self
@@ -97,7 +94,7 @@ impl<'map> TaikoPP<'map> {
 
     /// Specify the amount of 300s of a play.
     #[inline]
-    pub fn n300(mut self, n300: usize) -> Self {
+    pub fn n300(mut self, n300: u32) -> Self {
         self.n300.replace(n300);
 
         self
@@ -105,7 +102,7 @@ impl<'map> TaikoPP<'map> {
 
     /// Specify the amount of 100s of a play.
     #[inline]
-    pub fn n100(mut self, n100: usize) -> Self {
+    pub fn n100(mut self, n100: u32) -> Self {
         self.n100.replace(n100);
 
         self
@@ -113,8 +110,8 @@ impl<'map> TaikoPP<'map> {
 
     /// Specify the amount of misses of the play.
     #[inline]
-    pub fn misses(mut self, n_misses: usize) -> Self {
-        self.n_misses = n_misses.min(self.map.n_circles as usize);
+    pub fn misses(mut self, n_misses: u32) -> Self {
+        self.n_misses = n_misses;
 
         self
     }
@@ -129,18 +126,6 @@ impl<'map> TaikoPP<'map> {
         self
     }
 
-    /// Amount of passed objects for partial plays, e.g. a fail.
-    ///
-    /// If you want to calculate the performance after every few objects, instead of
-    /// using [`TaikoPP`] multiple times with different `passed_objects`, you should use
-    /// [`TaikoGradualPerformanceAttributes`](crate::taiko::TaikoGradualPerformanceAttributes).
-    #[inline]
-    pub fn passed_objects(mut self, passed_objects: usize) -> Self {
-        self.passed_objects.replace(passed_objects);
-
-        self
-    }
-
     /// Provide parameters through a [`TaikoScoreState`].
     #[inline]
     pub fn state(mut self, state: TaikoScoreState) -> Self {
@@ -148,28 +133,26 @@ impl<'map> TaikoPP<'map> {
             max_combo,
             n300,
             n100,
-            n_misses,
+            misses,
         } = state;
 
         self.combo = Some(max_combo);
         self.n300 = Some(n300);
         self.n100 = Some(n100);
-        self.n_misses = n_misses;
+        self.n_misses = misses;
 
         self
     }
 
     /// Calculate all performance related values, including pp and stars.
     pub fn calculate(mut self) -> TaikoPerformanceAttributes {
-        let attributes = self.attributes.take().unwrap_or_else(|| {
-            TaikoStars::new(self.map)
-                .mods(self.mods)
-                .passed_objects(self.passed_objects.unwrap_or(usize::MAX))
-                .calculate()
-        });
+        let attributes = self
+            .attributes
+            .take()
+            .unwrap_or_else(|| TaikoStars::new(self.map).mods(self.mods).calculate());
 
         if self.n300.or(self.n100).is_some() {
-            let total = self.map.n_circles as usize;
+            let total = attributes.max_combo;
             let misses = self.n_misses;
 
             let mut n300 = self.n300.unwrap_or(0).min(total - misses);
@@ -205,7 +188,7 @@ struct TaikoPPInner<'map> {
     attributes: TaikoDifficultyAttributes,
     mods: u32,
     acc: f64,
-    n_misses: usize,
+    n_misses: u32,
 }
 
 impl<'map> TaikoPPInner<'map> {

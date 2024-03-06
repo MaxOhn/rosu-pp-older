@@ -1,12 +1,11 @@
-use rosu_pp::parse::HitSound;
+use rosu_pp::model::hit_object::HitSoundType;
 
 pub(crate) trait Rim {
-    fn is_rim(&self) -> bool;
+    fn rim(self) -> bool;
 }
 
-impl Rim for u8 {
-    #[inline]
-    fn is_rim(&self) -> bool {
-        self.clap() || self.whistle()
+impl Rim for HitSoundType {
+    fn rim(self) -> bool {
+        self.has_flag(Self::CLAP | Self::WHISTLE)
     }
 }
