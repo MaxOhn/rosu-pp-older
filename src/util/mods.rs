@@ -19,16 +19,6 @@ pub trait Mods: Copy {
             1.0
         }
     }
-
-    fn od_ar_hp_multiplier(self) -> f64 {
-        if self.hr() {
-            1.4
-        } else if self.ez() {
-            0.5
-        } else {
-            1.0
-        }
-    }
 }
 
 macro_rules! impl_mods_fn {
