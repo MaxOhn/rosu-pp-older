@@ -109,7 +109,7 @@ fn calculate_star_rating(aim_rating: f64, speed_rating: f64, flashlight_rating: 
 
 fn calculate_skills(map: &Beatmap, mods: u32) -> (Skills, OsuDifficultyAttributes) {
     let map_attrs = map.attributes().mods(mods).build();
-    let hit_window = map_attrs.hit_windows.od;
+    let hit_window = map_attrs.hit_windows.od_great;
 
     let hr = mods.hr();
 

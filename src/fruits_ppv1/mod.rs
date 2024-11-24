@@ -12,6 +12,7 @@ use rosu_pp::{
     model::{
         control_point::{DifficultyPoint, TimingPoint},
         hit_object::{HitObjectKind, Slider},
+        mode::GameMode,
     },
     Beatmap,
 };
@@ -97,8 +98,12 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
                 }
 
                 // Build the curve w.r.t. the control points
-                let curve =
-                    BorrowedCurve::new(control_points, *expected_dist, &mut params.curve_bufs);
+                let curve = BorrowedCurve::new(
+                    GameMode::Catch,
+                    control_points,
+                    *expected_dist,
+                    &mut params.curve_bufs,
+                );
 
                 let velocity =
                     (BASE_SCORING_DISTANCE * map.slider_multiplier * slider_vel) / beat_len;

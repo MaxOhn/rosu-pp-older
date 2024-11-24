@@ -135,6 +135,8 @@ impl<'map> OsuPP<'map> {
             n100,
             n50,
             misses,
+            large_tick_hits: _,
+            slider_end_hits: _,
         } = state;
 
         self.combo = Some(max_combo);

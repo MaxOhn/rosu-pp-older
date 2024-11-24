@@ -8,6 +8,7 @@ use rosu_pp::{
     model::{
         control_point::{DifficultyPoint, TimingPoint},
         hit_object::{HitObject, HitObjectKind, HoldNote, Slider, Spinner},
+        mode::GameMode,
     },
     Beatmap,
 };
@@ -117,7 +118,8 @@ impl OsuObject {
                 }
 
                 // Build the curve w.r.t. the control points
-                let curve = BorrowedCurve::new(control_points, *expected_dist, curve_bufs);
+                let curve =
+                    BorrowedCurve::new(GameMode::Osu, control_points, *expected_dist, curve_bufs);
 
                 let velocity =
                     (BASE_SCORING_DISTANCE * map.slider_multiplier * slider_vel) / beat_len;
