@@ -136,6 +136,7 @@ impl<'map> OsuPP<'map> {
             n50,
             misses,
             large_tick_hits: _,
+            small_tick_hits: _,
             slider_end_hits: _,
         } = state;
 
