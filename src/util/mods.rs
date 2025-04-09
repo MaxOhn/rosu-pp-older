@@ -17,15 +17,7 @@ pub trait Mods {
     fn bl(&self) -> bool;
     fn tc(&self) -> bool;
 
-    fn clock_rate(&self) -> f64 {
-        if self.dt() {
-            1.5
-        } else if self.ht() {
-            0.75
-        } else {
-            1.0
-        }
-    }
+    fn clock_rate(&self) -> f64;
 
     fn no_slider_head_acc(&self, lazer: bool) -> bool;
 
@@ -60,6 +52,16 @@ impl Mods for u32 {
     impl_mods_fn!(bl, false);
     impl_mods_fn!(tc, false);
 
+    fn clock_rate(&self) -> f64 {
+        if self.dt() {
+            1.5
+        } else if self.ht() {
+            0.75
+        } else {
+            1.0
+        }
+    }
+
     fn no_slider_head_acc(&self, lazer: bool) -> bool {
         !lazer
     }
@@ -91,6 +93,28 @@ macro_rules! impl_has_mod {
                     }
                 }
             )*
+
+            fn clock_rate(&self) -> f64 {
+                match self {
+                    Self::Lazer(ref mods) => mods
+                        .iter()
+                        .find_map(|m| {
+                            let default = match m.intermode() {
+                                GameModIntermode::DoubleTime | GameModIntermode::HalfTime => {
+                                    return m.clock_rate()
+                                }
+                                GameModIntermode::Nightcore => 1.5,
+                                GameModIntermode::Daycore => 0.75,
+                                _ => return None,
+                            };
+
+                            Some(default * (m.clock_rate()? / default))
+                        })
+                        .unwrap_or(1.0),
+                    Self::Intermode(ref mods) => mods.legacy_clock_rate(),
+                    Self::Legacy(mods) => mods.clock_rate(),
+                }
+            }
 
             fn no_slider_head_acc(&self, lazer: bool) -> bool {
                 match self {
