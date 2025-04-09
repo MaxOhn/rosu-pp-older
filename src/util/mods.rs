@@ -1,5 +1,7 @@
-use rosu_mods::{GameMod, GameModIntermode};
-use rosu_pp::{model::mods::reexports::GameModsLegacy, GameMods};
+use rosu_pp::{
+    model::mods::rosu_mods::{GameMod, GameModIntermode, GameModsLegacy},
+    GameMods,
+};
 
 pub trait Mods {
     fn nf(&self) -> bool;

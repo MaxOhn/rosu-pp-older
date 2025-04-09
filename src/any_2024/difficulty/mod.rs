@@ -1,6 +1,6 @@
 use std::num::NonZeroU64;
 
-use rosu_pp::model::mods::{reexports::GameModsLegacy, GameMods};
+use rosu_pp::model::mods::{rosu_mods::GameModsLegacy, GameMods};
 
 use crate::util::mods::Mods;
 
