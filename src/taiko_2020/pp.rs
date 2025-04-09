@@ -191,7 +191,7 @@ struct TaikoPPInner<'map> {
     n_misses: u32,
 }
 
-impl<'map> TaikoPPInner<'map> {
+impl TaikoPPInner<'_> {
     fn calculate(self) -> TaikoPerformanceAttributes {
         let mut multiplier = 1.1;
 

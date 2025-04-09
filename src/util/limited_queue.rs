@@ -108,4 +108,4 @@ impl<'a, T> Iterator for LimitedQueueIter<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for LimitedQueueIter<'a, T> {}
+impl<T> ExactSizeIterator for LimitedQueueIter<'_, T> {}

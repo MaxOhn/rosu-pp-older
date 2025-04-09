@@ -21,6 +21,7 @@ pub struct TaikoStars {
 
 impl TaikoStars {
     /// Create a new difficulty calculator.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             difficulty: Difficulty::new(),

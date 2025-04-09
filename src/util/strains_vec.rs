@@ -175,7 +175,7 @@ impl StrainsVec {
         let mut iter = self.inner.iter();
 
         while let Some(zero_count) = copy_non_zero(&mut iter, &mut vec) {
-            vec.extend(iter::repeat(0.0).take(zero_count));
+            vec.extend(iter::repeat_n(0.0, zero_count));
         }
 
         vec

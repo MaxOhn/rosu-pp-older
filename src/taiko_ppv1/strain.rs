@@ -88,9 +88,7 @@ impl Strain {
 
     fn has_rhythm_change(&mut self, current: &DifficultyObject) -> bool {
         if current.delta.abs() < f32::EPSILON
-            || self
-                .prev_delta
-                .map_or(true, |time| time.abs() < f32::EPSILON)
+            || self.prev_delta.is_none_or(|time| time.abs() < f32::EPSILON)
         {
             return false;
         }
