@@ -201,8 +201,8 @@ impl<'map> OsuPP<'map> {
                     let remaining = n_objects.saturating_sub(n300 + n100 + n50 + misses);
 
                     match priority {
-                        HitResultPriority::BestCase => n300 += remaining,
                         HitResultPriority::WorstCase => n50 += remaining,
+                        HitResultPriority::BestCase | _ => n300 += remaining,
                     }
                 }
                 (Some(_), Some(_), None) => n50 = n_objects.saturating_sub(n300 + n100 + misses),
@@ -300,19 +300,19 @@ impl<'map> OsuPP<'map> {
                     }
 
                     match priority {
-                        HitResultPriority::BestCase => {
-                            // Shift n50 to n100 by sacrificing n300
-                            let n = cmp::min(n300, n50 / 4);
-                            n300 -= n;
-                            n100 += 5 * n;
-                            n50 -= 4 * n;
-                        }
                         HitResultPriority::WorstCase => {
                             // Shift n100 to n50 by gaining n300
                             let n = n100 / 5;
                             n300 += n;
                             n100 -= 5 * n;
                             n50 += 4 * n;
+                        }
+                        HitResultPriority::BestCase | _ => {
+                            // Shift n50 to n100 by sacrificing n300
+                            let n = cmp::min(n300, n50 / 4);
+                            n300 -= n;
+                            n100 += 5 * n;
+                            n50 -= 4 * n;
                         }
                     }
                 }
@@ -321,17 +321,17 @@ impl<'map> OsuPP<'map> {
             let remaining = n_objects.saturating_sub(n300 + n100 + n50 + misses);
 
             match priority {
-                HitResultPriority::BestCase => match (self.n300, self.n100, self.n50) {
-                    (None, ..) => n300 = remaining,
-                    (_, None, _) => n100 = remaining,
-                    (.., None) => n50 = remaining,
-                    _ => n300 += remaining,
-                },
                 HitResultPriority::WorstCase => match (self.n50, self.n100, self.n300) {
                     (None, ..) => n50 = remaining,
                     (_, None, _) => n100 = remaining,
                     (.., None) => n300 = remaining,
                     _ => n50 += remaining,
+                },
+                HitResultPriority::BestCase | _ => match (self.n300, self.n100, self.n50) {
+                    (None, ..) => n300 = remaining,
+                    (_, None, _) => n100 = remaining,
+                    (.., None) => n50 = remaining,
+                    _ => n300 += remaining,
                 },
             }
         }

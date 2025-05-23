@@ -5,6 +5,7 @@ authors = ["MaxOhn <ohn.m@hotmail.de>"]
 edition = "2018"
 
 [dependencies]
-rosu-pp = { git = "https://github.com/MaxOhn/rosu-pp", branch = "main" }
+# rosu-pp = { git = "https://github.com/MaxOhn/rosu-pp", branch = "main" }
+rosu-pp = { git = "https://github.com/MaxOhn/rosu-pp", branch = "fast-hitresult-gen" }
 # rosu-pp = { path = "../rosu-pp" }
 rosu-map = { version = "0.2.1" }
