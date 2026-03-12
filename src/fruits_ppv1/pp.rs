@@ -269,7 +269,7 @@ impl<'m> FruitsPP<'m> {
         }
 
         // AR scaling
-        let ar = attributes.ar;
+        let ar = self.map.attributes().mods(self.mods).hit_windows().ar;
         let mut ar_factor = 1.0;
         if ar > 9.0 {
             ar_factor += 0.1 * (ar - 9.0);

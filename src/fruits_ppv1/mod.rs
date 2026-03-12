@@ -42,10 +42,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
 
     let map_attributes = map.attributes().mods(mods).build();
 
-    let attributes = CatchDifficultyAttributes {
-        ar: map_attributes.ar,
-        ..Default::default()
-    };
+    let attributes = CatchDifficultyAttributes::default();
 
     let mut params = FruitParams {
         attributes,

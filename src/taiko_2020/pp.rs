@@ -1,4 +1,7 @@
-use rosu_pp::{taiko::TaikoScoreState, Beatmap};
+use rosu_pp::{
+    taiko::{TaikoHitResults, TaikoScoreState},
+    Beatmap,
+};
 
 use crate::util::{math::difficulty_range, mods::Mods};
 
@@ -131,9 +134,7 @@ impl<'map> TaikoPP<'map> {
     pub fn state(mut self, state: TaikoScoreState) -> Self {
         let TaikoScoreState {
             max_combo,
-            n300,
-            n100,
-            misses,
+            hitresults: TaikoHitResults { n300, n100, misses },
         } = state;
 
         self.combo = Some(max_combo);

@@ -1,6 +1,9 @@
 use std::cmp::{self, Ordering};
 
-use rosu_pp::{catch::CatchScoreState, Beatmap};
+use rosu_pp::{
+    catch::{CatchHitResults, CatchScoreState},
+    Beatmap,
+};
 
 use crate::util::mods::Mods;
 
@@ -138,11 +141,14 @@ impl<'map> FruitsPP<'map> {
     pub const fn state(mut self, state: CatchScoreState) -> Self {
         let CatchScoreState {
             max_combo,
-            fruits: n_fruits,
-            droplets: n_droplets,
-            tiny_droplets: n_tiny_droplets,
-            tiny_droplet_misses: n_tiny_droplet_misses,
-            misses,
+            hitresults:
+                CatchHitResults {
+                    fruits: n_fruits,
+                    droplets: n_droplets,
+                    tiny_droplets: n_tiny_droplets,
+                    tiny_droplet_misses: n_tiny_droplet_misses,
+                    misses,
+                },
         } = state;
 
         self.combo = Some(max_combo);
@@ -179,8 +185,10 @@ impl<'map> FruitsPP<'map> {
 
         let mut best_state = CatchScoreState {
             max_combo,
-            misses,
-            ..Default::default()
+            hitresults: CatchHitResults {
+                misses,
+                ..Default::default()
+            },
         };
 
         let mut best_dist = f64::INFINITY;
@@ -233,8 +241,8 @@ impl<'map> FruitsPP<'map> {
             }
         };
 
-        best_state.fruits = n_fruits;
-        best_state.droplets = n_droplets;
+        best_state.hitresults.fruits = n_fruits;
+        best_state.hitresults.droplets = n_droplets;
 
         let mut find_best_tiny_droplets = |acc: f64| {
             let raw_tiny_droplets = acc
@@ -259,8 +267,8 @@ impl<'map> FruitsPP<'map> {
 
                 if curr_dist < best_dist {
                     best_dist = curr_dist;
-                    best_state.tiny_droplets = n_tiny_droplets;
-                    best_state.tiny_droplet_misses = n_tiny_droplet_misses;
+                    best_state.hitresults.tiny_droplets = n_tiny_droplets;
+                    best_state.hitresults.tiny_droplet_misses = n_tiny_droplet_misses;
                 }
             }
         };
@@ -271,8 +279,8 @@ impl<'map> FruitsPP<'map> {
                 Some(acc) => {
                     match (n_tiny_droplets + n_tiny_droplet_misses).cmp(&attrs.n_tiny_droplets) {
                         Ordering::Equal => {
-                            best_state.tiny_droplets = n_tiny_droplets;
-                            best_state.tiny_droplet_misses = n_tiny_droplet_misses;
+                            best_state.hitresults.tiny_droplets = n_tiny_droplets;
+                            best_state.hitresults.tiny_droplet_misses = n_tiny_droplet_misses;
                         }
                         Ordering::Less | Ordering::Greater => find_best_tiny_droplets(acc),
                     }
@@ -282,24 +290,25 @@ impl<'map> FruitsPP<'map> {
                         .n_tiny_droplets
                         .saturating_sub(n_tiny_droplets + n_tiny_droplet_misses);
 
-                    best_state.tiny_droplets = n_tiny_droplets + n_remaining;
-                    best_state.tiny_droplet_misses = n_tiny_droplet_misses;
+                    best_state.hitresults.tiny_droplets = n_tiny_droplets + n_remaining;
+                    best_state.hitresults.tiny_droplet_misses = n_tiny_droplet_misses;
                 }
             },
             (Some(n_tiny_droplets), None) => {
-                best_state.tiny_droplets = cmp::min(attrs.n_tiny_droplets, n_tiny_droplets);
-                best_state.tiny_droplet_misses =
+                best_state.hitresults.tiny_droplets =
+                    cmp::min(attrs.n_tiny_droplets, n_tiny_droplets);
+                best_state.hitresults.tiny_droplet_misses =
                     attrs.n_tiny_droplets.saturating_sub(n_tiny_droplets);
             }
             (None, Some(n_tiny_droplet_misses)) => {
-                best_state.tiny_droplets =
+                best_state.hitresults.tiny_droplets =
                     attrs.n_tiny_droplets.saturating_sub(n_tiny_droplet_misses);
-                best_state.tiny_droplet_misses =
+                best_state.hitresults.tiny_droplet_misses =
                     cmp::min(attrs.n_tiny_droplets, n_tiny_droplet_misses);
             }
             (None, None) => match self.acc {
                 Some(acc) => find_best_tiny_droplets(acc),
-                None => best_state.tiny_droplets = attrs.n_tiny_droplets,
+                None => best_state.hitresults.tiny_droplets = attrs.n_tiny_droplets,
             },
         }
 
@@ -351,7 +360,7 @@ impl CatchPerformanceInner {
         pp *= len_bonus;
 
         // Penalize misses exponentially
-        pp *= 0.97_f64.powf(f64::from(self.state.misses));
+        pp *= 0.97_f64.powf(f64::from(self.state.hitresults.misses));
 
         // Combo scaling
         if self.state.max_combo > 0 {
@@ -384,7 +393,7 @@ impl CatchPerformanceInner {
         }
 
         // Accuracy scaling
-        pp *= self.state.accuracy().powf(5.5);
+        pp *= self.state.hitresults.accuracy().powf(5.5);
 
         // NF penalty
         if self.mods.nf() {
@@ -398,7 +407,7 @@ impl CatchPerformanceInner {
     }
 
     const fn combo_hits(&self) -> u32 {
-        self.state.fruits + self.state.droplets + self.state.misses
+        self.state.hitresults.fruits + self.state.hitresults.droplets + self.state.hitresults.misses
     }
 }
 

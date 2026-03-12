@@ -1,6 +1,10 @@
 use std::cmp;
 
-use rosu_pp::{any::HitResultPriority, taiko::TaikoScoreState, Beatmap};
+use rosu_pp::{
+    any::HitResultPriority,
+    taiko::{TaikoHitResults, TaikoScoreState},
+    Beatmap,
+};
 
 use crate::util::mods::Mods;
 
@@ -138,9 +142,7 @@ impl<'map> TaikoPP<'map> {
     pub const fn state(mut self, state: TaikoScoreState) -> Self {
         let TaikoScoreState {
             max_combo,
-            n300,
-            n100,
-            misses,
+            hitresults: TaikoHitResults { n300, n100, misses },
         } = state;
 
         self.combo = Some(max_combo);
@@ -228,9 +230,7 @@ impl<'map> TaikoPP<'map> {
 
         let state = TaikoScoreState {
             max_combo,
-            n300,
-            n100,
-            misses,
+            hitresults: TaikoHitResults { n300, n100, misses },
         };
 
         (state, attrs)
@@ -263,7 +263,8 @@ impl TaikoPerformanceInner {
         let total_successful_hits = self.total_successful_hits();
 
         let effective_miss_count = if total_successful_hits > 0 {
-            (1000.0 / f64::from(total_successful_hits)).max(1.0) * f64::from(self.state.misses)
+            (1000.0 / f64::from(total_successful_hits)).max(1.0)
+                * f64::from(self.state.hitresults.misses)
         } else {
             0.0
         };
@@ -345,21 +346,23 @@ impl TaikoPerformanceInner {
     }
 
     const fn total_hits(&self) -> f64 {
-        self.state.total_hits() as f64
+        self.state.hitresults.total_hits() as f64
     }
 
     const fn total_successful_hits(&self) -> u32 {
-        self.state.n300 + self.state.n100
+        self.state.hitresults.n300 + self.state.hitresults.n100
     }
 
     fn custom_accuracy(&self) -> f64 {
-        let total_hits = self.state.total_hits();
+        let hitresults = &self.state.hitresults;
+
+        let total_hits = hitresults.total_hits();
 
         if total_hits == 0 {
             return 0.0;
         }
 
-        let numerator = self.state.n300 * 300 + self.state.n100 * 150;
+        let numerator = hitresults.n300 * 300 + hitresults.n100 * 150;
         let denominator = total_hits * 300;
 
         f64::from(numerator) / f64::from(denominator)

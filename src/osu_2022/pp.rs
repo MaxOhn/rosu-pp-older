@@ -2,7 +2,7 @@ use std::cmp;
 
 use rosu_pp::{
     any::HitResultPriority,
-    osu::{OsuScoreOrigin, OsuScoreState},
+    osu::{OsuHitResults, OsuScoreOrigin, OsuScoreState},
     Beatmap,
 };
 
@@ -145,13 +145,17 @@ impl<'map> OsuPP<'map> {
     pub const fn state(mut self, state: OsuScoreState) -> Self {
         let OsuScoreState {
             max_combo,
-            n300,
-            n100,
-            n50,
-            misses,
-            large_tick_hits: _,
-            small_tick_hits: _,
-            slider_end_hits: _,
+            hitresults:
+                OsuHitResults {
+                    n300,
+                    n100,
+                    n50,
+                    misses,
+                    large_tick_hits: _,
+                    small_tick_hits: _,
+                    slider_end_hits: _,
+                },
+            legacy_total_score: _,
         } = state;
 
         self.combo = Some(max_combo);
@@ -344,13 +348,16 @@ impl<'map> OsuPP<'map> {
 
         let state = OsuScoreState {
             max_combo,
-            n300,
-            n100,
-            n50,
-            misses,
-            large_tick_hits: 0,
-            small_tick_hits: 0,
-            slider_end_hits: 0,
+            hitresults: OsuHitResults {
+                n300,
+                n100,
+                n50,
+                misses,
+                large_tick_hits: 0,
+                small_tick_hits: 0,
+                slider_end_hits: 0,
+            },
+            legacy_total_score: None,
         };
 
         (state, attrs)
@@ -365,7 +372,7 @@ impl<'map> OsuPP<'map> {
         let inner = OsuPerformanceInner {
             attrs,
             mods: self.difficulty.get_mods(),
-            acc: state.accuracy(OsuScoreOrigin::Stable),
+            acc: state.hitresults.accuracy(OsuScoreOrigin::Stable),
             state,
             effective_miss_count,
         };
@@ -386,7 +393,7 @@ struct OsuPerformanceInner {
 
 impl OsuPerformanceInner {
     fn calculate(mut self) -> OsuPerformanceAttributes {
-        let total_hits = self.state.total_hits();
+        let total_hits = self.state.hitresults.total_hits();
 
         if total_hits == 0 {
             return OsuPerformanceAttributes {
@@ -423,9 +430,9 @@ impl OsuPerformanceInner {
             // * As we're adding Oks and Mehs to an approximated number of combo breaks the result can be
             // * higher than total hits in specific scenarios (which breaks some calculations) so we need to clamp it.
             self.effective_miss_count = (self.effective_miss_count
-                + f64::from(self.state.n100)
+                + f64::from(self.state.hitresults.n100)
                 + n100_mult
-                + f64::from(self.state.n50) * n50_mult)
+                + f64::from(self.state.hitresults.n50) * n50_mult)
                 .min(total_hits);
         }
 
@@ -496,7 +503,9 @@ impl OsuPerformanceInner {
 
         if self.attrs.n_sliders > 0 {
             let estimate_slider_ends_dropped = f64::from(cmp::min(
-                self.state.n100 + self.state.n50 + self.state.misses,
+                self.state.hitresults.n100
+                    + self.state.hitresults.n50
+                    + self.state.hitresults.misses,
                 self.attrs.max_combo.saturating_sub(self.state.max_combo),
             ))
             .clamp(0.0, estimate_diff_sliders);
@@ -557,12 +566,14 @@ impl OsuPerformanceInner {
 
         // * Calculate accuracy assuming the worst case scenario
         let relevant_total_diff = total_hits - self.attrs.speed_note_count;
-        let relevant_n300 = (f64::from(self.state.n300) - relevant_total_diff).max(0.0);
-        let relevant_n100 = (f64::from(self.state.n100)
-            - (relevant_total_diff - f64::from(self.state.n300)).max(0.0))
+        let relevant_n300 = (f64::from(self.state.hitresults.n300) - relevant_total_diff).max(0.0);
+        let relevant_n100 = (f64::from(self.state.hitresults.n100)
+            - (relevant_total_diff - f64::from(self.state.hitresults.n300)).max(0.0))
         .max(0.0);
-        let relevant_n50 = (f64::from(self.state.n50)
-            - (relevant_total_diff - f64::from(self.state.n300 + self.state.n100)).max(0.0))
+        let relevant_n50 = (f64::from(self.state.hitresults.n50)
+            - (relevant_total_diff
+                - f64::from(self.state.hitresults.n300 + self.state.hitresults.n100))
+            .max(0.0))
         .max(0.0);
 
         let relevant_acc = if self.attrs.speed_note_count.eq(0.0) {
@@ -578,8 +589,9 @@ impl OsuPerformanceInner {
 
         // * Scale the speed value with # of 50s to punish doubletapping.
         speed_value *= 0.99_f64.powf(
-            f64::from(u8::from(f64::from(self.state.n50) >= total_hits / 500.0))
-                * (f64::from(self.state.n50) - total_hits / 500.0),
+            f64::from(u8::from(
+                f64::from(self.state.hitresults.n50) >= total_hits / 500.0,
+            )) * (f64::from(self.state.hitresults.n50) - total_hits / 500.0),
         );
 
         speed_value
@@ -595,14 +607,17 @@ impl OsuPerformanceInner {
         let amount_hit_objects_with_acc = self.attrs.n_circles;
 
         let better_acc_percentage = if amount_hit_objects_with_acc > 0 {
-            let sub = self.state.total_hits() - amount_hit_objects_with_acc;
+            let sub = self.state.hitresults.total_hits() - amount_hit_objects_with_acc;
 
             // * It is possible to reach a negative accuracy with this formula. Cap it at zero - zero points.
-            if self.state.n300 < sub {
+            if self.state.hitresults.n300 < sub {
                 0.0
             } else {
-                f64::from((self.state.n300 - sub) * 6 + self.state.n100 * 2 + self.state.n50)
-                    / f64::from(amount_hit_objects_with_acc * 6)
+                f64::from(
+                    (self.state.hitresults.n300 - sub) * 6
+                        + self.state.hitresults.n100 * 2
+                        + self.state.hitresults.n50,
+                ) / f64::from(amount_hit_objects_with_acc * 6)
             }
         } else {
             0.0
@@ -672,7 +687,7 @@ impl OsuPerformanceInner {
     }
 
     const fn total_hits(&self) -> f64 {
-        self.state.total_hits() as f64
+        self.state.hitresults.total_hits() as f64
     }
 }
 
@@ -689,10 +704,11 @@ fn calculate_effective_misses(attrs: &OsuDifficultyAttributes, state: &OsuScoreS
     }
 
     // * Clamp miss count to maximum amount of possible breaks
-    combo_based_miss_count =
-        combo_based_miss_count.min(f64::from(state.n100 + state.n50 + state.misses));
+    combo_based_miss_count = combo_based_miss_count.min(f64::from(
+        state.hitresults.n100 + state.hitresults.n50 + state.hitresults.misses,
+    ));
 
-    combo_based_miss_count.max(f64::from(state.misses))
+    combo_based_miss_count.max(f64::from(state.hitresults.misses))
 }
 
 fn accuracy(n300: u32, n100: u32, n50: u32, misses: u32) -> f64 {

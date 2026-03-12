@@ -1,4 +1,7 @@
-use rosu_pp::{osu::OsuScoreState, Beatmap};
+use rosu_pp::{
+    osu::{OsuHitResults, OsuScoreState},
+    Beatmap,
+};
 
 use crate::util::mods::Mods;
 
@@ -131,13 +134,17 @@ impl<'map> OsuPP<'map> {
     pub fn state(mut self, state: OsuScoreState) -> Self {
         let OsuScoreState {
             max_combo,
-            n300,
-            n100,
-            n50,
-            misses,
-            large_tick_hits: _,
-            small_tick_hits: _,
-            slider_end_hits: _,
+            hitresults:
+                OsuHitResults {
+                    n300,
+                    n100,
+                    n50,
+                    misses,
+                    large_tick_hits: _,
+                    small_tick_hits: _,
+                    slider_end_hits: _,
+                },
+            legacy_total_score: _,
         } = state;
 
         self.combo = Some(max_combo);
