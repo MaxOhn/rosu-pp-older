@@ -1,4 +1,4 @@
-use crate::fruits_2025::PLAYFIELD_WIDTH;
+use crate::fruits_2024::PLAYFIELD_WIDTH;
 
 pub struct PalpableObject {
     pub x: f32,

@@ -16,7 +16,7 @@ use rosu_pp::{
 };
 
 use crate::{
-    fruits_2025::attributes::ObjectCountBuilder,
+    fruits_2024::attributes::ObjectCountBuilder,
     util::{self, get_precision_adjusted_beat_len},
 };
 

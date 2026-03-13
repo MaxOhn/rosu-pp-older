@@ -22,7 +22,7 @@ pub mod mania_2022;
 pub mod mania_ppv1;
 
 pub mod fruits_2022;
-pub mod fruits_2025;
+pub mod fruits_2024;
 pub mod fruits_ppv1;
 
 pub mod taiko_2020;

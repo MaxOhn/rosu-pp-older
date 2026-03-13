@@ -1,7 +1,7 @@
 use rosu_pp::GameMods;
 
 use crate::{
-    fruits_2025::{
+    fruits_2024::{
         score_state::CatchScoreState, CatchDifficultyAttributes, CatchPerformanceAttributes,
     },
     util::mods::GameModsExt,

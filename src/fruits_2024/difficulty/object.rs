@@ -1,6 +1,6 @@
 use crate::{
     any::difficulty::object::{HasStartTime, IDifficultyObject},
-    fruits_2025::object::palpable::PalpableObject,
+    fruits_2024::object::palpable::PalpableObject,
 };
 
 pub struct CatchDifficultyObject {

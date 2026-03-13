@@ -5,7 +5,7 @@ use rosu_pp::{model::mode::ConvertError, Beatmap, Difficulty, GameMods};
 use self::calculator::CatchPerformanceCalculator;
 
 use crate::{
-    any::difficulty::DifficultyExt, fruits_2025::CatchDifficultyAttributes,
+    any::difficulty::DifficultyExt, fruits_2024::CatchDifficultyAttributes,
     util::map_or_attrs::MapOrAttrs,
 };
 

@@ -1,4 +1,4 @@
-use crate::fruits_2025::attributes::ObjectCountBuilder;
+use crate::fruits_2024::attributes::ObjectCountBuilder;
 
 pub struct Fruit {
     pub x_offset: f32,
