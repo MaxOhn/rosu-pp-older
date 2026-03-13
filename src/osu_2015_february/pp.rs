@@ -205,8 +205,8 @@ impl<'m> OsuPP<'m> {
                     self.n50.get_or_insert(0);
                 } else if self.n50.is_none() {
                     self.n50.replace(remaining);
-                } else {
-                    *self.n300.as_mut().unwrap() += remaining;
+                } else if let Some(ref mut n300) = self.n300 {
+                    *n300 += remaining;
                 }
             } else {
                 self.n300.get_or_insert(0);

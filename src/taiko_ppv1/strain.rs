@@ -115,7 +115,7 @@ impl Strain {
 
         let old_color_switch = self.last_color_switch;
 
-        let new_color_switch = if self.same_color_count % 2 == 0 {
+        let new_color_switch = if self.same_color_count.is_multiple_of(2) {
             ColorSwitch::Even
         } else {
             ColorSwitch::Odd
