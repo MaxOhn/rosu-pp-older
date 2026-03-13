@@ -248,6 +248,10 @@ pub(crate) trait GameModsExt {
 
     fn reflection(&self) -> Reflection;
 
+    fn scroll_speed(&self) -> Option<f64>;
+
+    fn random_seed(&self) -> Option<i32>;
+
     define_has_mod! {
         nf: + NoFail ["NoFail"],
         ez: + Easy ["Easy"],
@@ -343,6 +347,31 @@ impl GameModsExt for GameMods {
                 }
             }
         }
+    }
+
+    fn scroll_speed(&self) -> Option<f64> {
+        let Self::Lazer(mods) = self else { return None };
+
+        mods.iter()
+            .find_map(|m| match m {
+                GameMod::DifficultyAdjustTaiko(da) => Some(da.scroll_speed),
+                _ => None,
+            })
+            .flatten()
+    }
+
+    fn random_seed(&self) -> Option<i32> {
+        let Self::Lazer(mods) = self else { return None };
+
+        mods.iter()
+            .find_map(|m| match m {
+                // `RandomOsu` is not implemented because it relies on
+                // hitobjects' combo index which is never stored.
+                GameMod::RandomTaiko(m) => m.seed,
+                GameMod::RandomMania(m) => m.seed,
+                _ => None,
+            })
+            .map(|seed| seed as i32)
     }
 
     impl_has_mod! {

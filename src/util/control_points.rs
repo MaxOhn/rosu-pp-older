@@ -1,4 +1,4 @@
-use rosu_pp::model::control_point::{DifficultyPoint, TimingPoint};
+use rosu_pp::model::control_point::{DifficultyPoint, EffectPoint, TimingPoint};
 
 pub fn timing_point_at(points: &[TimingPoint], time: f64) -> Option<&TimingPoint> {
     let i = points
@@ -9,6 +9,13 @@ pub fn timing_point_at(points: &[TimingPoint], time: f64) -> Option<&TimingPoint
 }
 
 pub fn difficulty_point_at(points: &[DifficultyPoint], time: f64) -> Option<&DifficultyPoint> {
+    points
+        .binary_search_by(|probe| probe.time.total_cmp(&time))
+        .map_or_else(|i| i.checked_sub(1), Some)
+        .map(|i| &points[i])
+}
+
+pub fn effect_point_at(points: &[EffectPoint], time: f64) -> Option<&EffectPoint> {
     points
         .binary_search_by(|probe| probe.time.total_cmp(&time))
         .map_or_else(|i| i.checked_sub(1), Some)

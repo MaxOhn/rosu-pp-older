@@ -2,7 +2,7 @@
 name = "rosu-pp-older"
 version = "0.2.0"
 authors = ["MaxOhn <ohn.m@hotmail.de>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 # rosu-pp = { git = "https://github.com/MaxOhn/rosu-pp", branch = "next" }
