@@ -1,7 +1,7 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 
 use crate::{
-    any_2024::difficulty::{
+    any::difficulty::{
         object::IDifficultyObject,
         skills::{strain_decay, DifficultyValue, ISkill, Skill, UsedStrainSkills},
     },

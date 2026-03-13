@@ -1,7 +1,7 @@
 use std::cmp;
 
 use crate::{
-    any_2024::difficulty::{
+    any::difficulty::{
         object::IDifficultyObject,
         skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
     },

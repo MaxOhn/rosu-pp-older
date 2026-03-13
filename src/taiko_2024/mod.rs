@@ -1,6 +1,6 @@
 use rosu_pp::{model::mode::GameMode, Beatmap};
 
-use crate::any_2024::difficulty::Difficulty;
+use crate::any::difficulty::Difficulty;
 
 pub use self::{
     attributes::{TaikoDifficultyAttributes, TaikoPerformanceAttributes},

@@ -1,21 +1,24 @@
-use rosu_map::util::Pos;
-use rosu_pp::{model::mode::GameMode, Beatmap};
+use rosu_pp::{
+    model::mode::{GameMode, IGameMode},
+    Beatmap, Difficulty,
+};
 
-use crate::any::difficulty::Difficulty;
+use crate::any::difficulty::DifficultyExt;
 
 pub use self::{
-    attributes::{OsuDifficultyAttributes, OsuPerformanceAttributes},
-    performance::OsuPP,
+    attributes::{CatchDifficultyAttributes, CatchPerformanceAttributes},
+    performance::CatchPerformance as FruitsPP,
 };
 
 mod attributes;
+mod catcher;
 mod convert;
 mod difficulty;
 mod object;
 mod performance;
 mod score_state;
 
-const PLAYFIELD_BASE_SIZE: Pos = Pos::new(512.0, 384.0);
+const PLAYFIELD_WIDTH: f32 = 512.0;
 
 #[derive(Clone, PartialEq)]
 #[must_use]
@@ -70,15 +73,15 @@ impl OsuStars {
     }
 
     /// Perform the difficulty calculation.
-    pub fn calculate(&self, map: &Beatmap) -> OsuDifficultyAttributes {
+    pub fn calculate(&self, map: &Beatmap) -> CatchDifficultyAttributes {
         Self::calculate_static(&self.difficulty, map)
     }
 
     pub(crate) fn calculate_static(
         difficulty: &Difficulty,
         map: &Beatmap,
-    ) -> OsuDifficultyAttributes {
-        let Ok(map) = map.convert_ref(GameMode::Osu, difficulty.get_mods()) else {
+    ) -> CatchDifficultyAttributes {
+        let Ok(map) = map.convert_ref(GameMode::Osu, &difficulty.get_mods()) else {
             return Default::default();
         };
 

@@ -3,7 +3,7 @@ use std::cmp;
 use rosu_pp::GameMods;
 
 use crate::{
-    any_2024::difficulty::{
+    any::difficulty::{
         object::IDifficultyObject,
         skills::{strain_decay, ISkill, Skill, StrainSkill},
     },

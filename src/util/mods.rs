@@ -1,5 +1,7 @@
 use rosu_pp::{
-    model::mods::rosu_mods::{GameMod, GameModIntermode, GameModsLegacy},
+    model::mods::rosu_mods::{
+        generated_mods::DifficultyAdjustCatch, GameMod, GameModIntermode, GameModsLegacy,
+    },
     GameMods,
 };
 
@@ -199,4 +201,165 @@ pub(crate) enum Reflection {
     Vertical,
     Horizontal,
     Both,
+}
+
+macro_rules! define_has_mod {
+    ( $( $fn:ident: $is_legacy:tt $name:ident [ $s:literal ], )* ) => {
+        $( fn $fn(&self) -> bool; )*
+    };
+}
+
+macro_rules! impl_has_mod {
+    ( $( $fn:ident: $is_legacy:tt $name:ident [ $s:literal ], )* ) => {
+        $(
+            // workaround for <https://github.com/rust-lang/rust-analyzer/issues/8092>
+            #[doc = "Check whether [`GameMods`] contain `"]
+            #[doc = $s]
+            #[doc = "`."]
+            fn $fn(&self) -> bool {
+                match self {
+                    Self::Lazer(mods) => {
+                        mods.contains_intermode(GameModIntermode::$name)
+                    },
+                    Self::Intermode(mods) => {
+                        mods.contains(GameModIntermode::$name)
+                    },
+                    Self::Legacy(_mods) => {
+                        impl_has_mod!(LEGACY $is_legacy $name _mods)
+                    },
+                }
+            }
+        )*
+    };
+
+    ( LEGACY + $name:ident $mods:ident ) => {
+        $mods.contains(GameModsLegacy::$name)
+    };
+
+    ( LEGACY - $name:ident $mods:ident ) => {
+        false
+    };
+}
+
+pub(crate) trait GameModsExt {
+    fn clock_rate(&self) -> f64;
+
+    fn hardrock_offsets(&self) -> bool;
+
+    fn reflection(&self) -> Reflection;
+
+    define_has_mod! {
+        nf: + NoFail ["NoFail"],
+        ez: + Easy ["Easy"],
+        td: + TouchDevice ["TouchDevice"],
+        hd: + Hidden ["Hidden"],
+        hr: + HardRock ["HardRock"],
+        rx: + Relax ["Relax"],
+        fl: + Flashlight ["Flashlight"],
+        so: + SpunOut ["SpunOut"],
+        ap: + Autopilot ["Autopilot"],
+        sv2: + ScoreV2 ["ScoreV2"],
+        bl: - Blinds ["Blinds"],
+        cl: - Classic ["Classic"],
+        invert: - Invert ["Invert"],
+        ho: - HoldOff ["HoldOff"],
+        tc: - Traceable ["Traceable"],
+    }
+}
+
+impl GameModsExt for GameMods {
+    /// Returns the mods' clock rate.
+    ///
+    /// In case of variable clock rates like for `WindUp`, this will return
+    /// `1.0`.
+    fn clock_rate(&self) -> f64 {
+        match self {
+            GameMods::Lazer(ref mods) => mods
+                .iter()
+                .find_map(|m| {
+                    let default = match m.intermode() {
+                        GameModIntermode::DoubleTime | GameModIntermode::HalfTime => {
+                            return m.clock_rate()
+                        }
+                        GameModIntermode::Nightcore => 1.5,
+                        GameModIntermode::Daycore => 0.75,
+                        _ => return None,
+                    };
+
+                    Some(default * (m.clock_rate()? / default))
+                })
+                .unwrap_or(1.0),
+            GameMods::Intermode(ref mods) => mods.legacy_clock_rate(),
+            GameMods::Legacy(mods) => mods.clock_rate(),
+        }
+    }
+
+    /// Check whether the mods enable `hardrock_offsets`.
+    fn hardrock_offsets(&self) -> bool {
+        fn custom_hardrock_offsets(mods: &GameMods) -> Option<bool> {
+            match mods {
+                GameMods::Lazer(ref mods) => mods.iter().find_map(|gamemod| match gamemod {
+                    GameMod::DifficultyAdjustCatch(DifficultyAdjustCatch {
+                        hard_rock_offsets,
+                        ..
+                    }) => *hard_rock_offsets,
+                    _ => None,
+                }),
+                GameMods::Intermode(_) | GameMods::Legacy(_) => None,
+            }
+        }
+
+        custom_hardrock_offsets(self).unwrap_or_else(|| self.hr())
+    }
+
+    fn reflection(&self) -> Reflection {
+        match self {
+            Self::Lazer(ref mods) => mods
+                .iter()
+                .find_map(|m| match m {
+                    GameMod::HardRockOsu(_) => Some(Reflection::Vertical),
+                    GameMod::MirrorOsu(mr) => match mr.reflection.as_deref() {
+                        None => Some(Reflection::Horizontal),
+                        Some("1") => Some(Reflection::Vertical),
+                        Some("2") => Some(Reflection::Both),
+                        Some(_) => Some(Reflection::None),
+                    },
+                    GameMod::MirrorCatch(_) => Some(Reflection::Horizontal),
+                    _ => None,
+                })
+                .unwrap_or(Reflection::None),
+            Self::Intermode(ref mods) => {
+                if mods.contains(GameModIntermode::HardRock) {
+                    Reflection::Vertical
+                } else {
+                    Reflection::None
+                }
+            }
+            Self::Legacy(mods) => {
+                if mods.contains(GameModsLegacy::HardRock) {
+                    Reflection::Vertical
+                } else {
+                    Reflection::None
+                }
+            }
+        }
+    }
+
+    impl_has_mod! {
+        nf: + NoFail ["NoFail"],
+        ez: + Easy ["Easy"],
+        td: + TouchDevice ["TouchDevice"],
+        hd: + Hidden ["Hidden"],
+        hr: + HardRock ["HardRock"],
+        rx: + Relax ["Relax"],
+        fl: + Flashlight ["Flashlight"],
+        so: + SpunOut ["SpunOut"],
+        ap: + Autopilot ["Autopilot"],
+        sv2: + ScoreV2 ["ScoreV2"],
+        bl: - Blinds ["Blinds"],
+        cl: - Classic ["Classic"],
+        invert: - Invert ["Invert"],
+        ho: - HoldOff ["HoldOff"],
+        tc: - Traceable ["Traceable"],
+    }
 }

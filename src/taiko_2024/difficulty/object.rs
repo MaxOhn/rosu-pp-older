@@ -1,7 +1,7 @@
 use std::slice::Iter;
 
 use crate::{
-    any_2024::difficulty::object::IDifficultyObject,
+    any::difficulty::object::IDifficultyObject,
     taiko_2024::object::{HitType, TaikoObject},
     util::sync::RefCount,
 };

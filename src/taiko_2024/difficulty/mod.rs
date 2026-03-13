@@ -8,7 +8,7 @@ use rosu_pp::{
     Beatmap,
 };
 
-use crate::any_2024::difficulty::{skills::Skill, Difficulty};
+use crate::any::difficulty::{skills::Skill, Difficulty};
 
 use self::skills::{color::Color, rhythm::Rhythm, stamina::Stamina, TaikoSkills};
 

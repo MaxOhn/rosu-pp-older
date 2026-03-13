@@ -3,7 +3,7 @@ use std::{borrow::Cow, pin::Pin};
 use rosu_map::util::Pos;
 
 use crate::{
-    any_2024::difficulty::object::IDifficultyObject,
+    any::difficulty::object::IDifficultyObject,
     osu_2024::object::{OsuObject, OsuObjectKind, OsuSlider},
 };
 

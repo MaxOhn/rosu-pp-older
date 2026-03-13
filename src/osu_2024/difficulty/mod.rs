@@ -8,7 +8,7 @@ use rosu_pp::{
 use skills::{flashlight::Flashlight, strain::OsuStrainSkill};
 
 use crate::{
-    any_2024::difficulty::{
+    any::difficulty::{
         skills::{DifficultyValue, Skill, UsedStrainSkills},
         Difficulty,
     },

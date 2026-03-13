@@ -3,7 +3,7 @@ use std::cmp;
 use rosu_pp::{any::HitResultPriority, Beatmap, GameMods};
 
 use crate::{
-    any_2024::difficulty::Difficulty,
+    any::difficulty::Difficulty,
     util::{float_ext::FloatExt, mods::Mods},
 };
 
