@@ -246,6 +246,8 @@ pub(crate) trait GameModsExt {
 
     fn hardrock_offsets(&self) -> bool;
 
+    fn no_slider_head_acc(&self, lazer: bool) -> bool;
+
     fn reflection(&self) -> Reflection;
 
     fn scroll_speed(&self) -> Option<f64>;
@@ -314,6 +316,20 @@ impl GameModsExt for GameMods {
         }
 
         custom_hardrock_offsets(self).unwrap_or_else(|| self.hr())
+    }
+
+    fn no_slider_head_acc(&self, lazer: bool) -> bool {
+        match self {
+            Self::Lazer(mods) => mods
+                .iter()
+                .find_map(|m| match m {
+                    GameMod::ClassicOsu(cl) => Some(cl.no_slider_head_accuracy.unwrap_or(true)),
+                    _ => None,
+                })
+                .unwrap_or(!lazer),
+            Self::Intermode(mods) => mods.contains(GameModIntermode::Classic) || !lazer,
+            Self::Legacy(_) => !lazer,
+        }
     }
 
     fn reflection(&self) -> Reflection {
