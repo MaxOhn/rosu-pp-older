@@ -46,7 +46,16 @@ impl<'map> TaikoPerformance<'map> {
     /// [`Beatmap`]: crate::model::beatmap::Beatmap
     /// [`TaikoDifficultyAttributes`]: crate::taiko::TaikoDifficultyAttributes
     pub fn new(map: &'map Beatmap) -> Self {
-        map.into_performance()
+        Self {
+            map_or_attrs: map.into(),
+            difficulty: Difficulty::new(),
+            combo: None,
+            acc: None,
+            hitresult_priority: HitResultPriority::BestCase,
+            n300: None,
+            n100: None,
+            misses: None,
+        }
     }
 
     /// Specify mods.
@@ -193,7 +202,8 @@ impl<'map> TaikoPerformance<'map> {
 
     /// Create the [`TaikoScoreState`] that will be used for performance calculation.
     pub fn generate_state(&mut self) -> Result<TaikoScoreState, ConvertError> {
-        self.map_or_attrs.insert_attrs(&self.difficulty)?;
+        self.map_or_attrs
+            .insert_attrs(|map| super::difficulty::difficulty(&self.difficulty, map))?;
 
         // SAFETY: We just calculated and inserted the attributes.
         let attrs = unsafe { self.map_or_attrs.get_attrs() };
@@ -225,25 +235,20 @@ impl<'map> TaikoPerformance<'map> {
                 (None, None) => {
                     let target_total = acc * f64::from(2 * total_result_count);
 
-                    if let HitResultPriority::Fastest = priority {
-                        n300 = f64::round_ties_even(target_total) as u32 - n_remaining;
-                        n100 = total_result_count.saturating_sub(n300 + misses);
-                    } else {
-                        let mut best_dist = f64::MAX;
+                    let mut best_dist = f64::MAX;
 
-                        let raw_n300 = target_total - f64::from(n_remaining);
-                        let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
-                        let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
+                    let raw_n300 = target_total - f64::from(n_remaining);
+                    let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
+                    let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
 
-                        for new300 in min_n300..=max_n300 {
-                            let new100 = n_remaining - new300;
-                            let dist = (acc - accuracy(new300, new100, misses)).abs();
+                    for new300 in min_n300..=max_n300 {
+                        let new100 = n_remaining - new300;
+                        let dist = (acc - accuracy(new300, new100, misses)).abs();
 
-                            if dist < best_dist {
-                                best_dist = dist;
-                                n300 = new300;
-                                n100 = new100;
-                            }
+                        if dist < best_dist {
+                            best_dist = dist;
+                            n300 = new300;
+                            n100 = new100;
                         }
                     }
                 }

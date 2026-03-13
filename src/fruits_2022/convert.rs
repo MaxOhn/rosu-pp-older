@@ -4,7 +4,7 @@ use rosu_pp::{
     Beatmap,
 };
 
-use crate::util::{float_ext::FloatExt, random::Random, sort::TandemSorter};
+use crate::util::{float_ext::FloatExt, random::osu::Random, sort::TandemSorter};
 
 use super::{
     attributes::ObjectCountBuilder,

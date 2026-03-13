@@ -164,10 +164,6 @@ impl TaikoDifficultyObjects {
         self.objects.push(hit_object);
     }
 
-    pub const fn is_empty(&self) -> bool {
-        self.objects.is_empty()
-    }
-
     pub fn iter(&self) -> Iter<'_, RefCount<TaikoDifficultyObject>> {
         self.objects.iter()
     }

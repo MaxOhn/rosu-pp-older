@@ -1,11 +1,11 @@
-use rosu_map::section::{general::GameMode, hit_objects::CurveBuffers};
+use rosu_map::section::hit_objects::CurveBuffers;
 
 use rosu_pp::model::{
     beatmap::Beatmap,
     hit_object::{HitObject, HitObjectKind, HoldNote, Spinner},
 };
 
-use crate::util::{float_ext::FloatExt, mods::Reflection, random::Random};
+use crate::util::{float_ext::FloatExt, mods::Reflection, random::osu::Random};
 
 use super::{
     attributes::ObjectCountBuilder,
@@ -20,11 +20,6 @@ use super::{
 };
 
 const RNG_SEED: i32 = 1337;
-
-pub const fn convert(map: &mut Beatmap) {
-    map.mode = GameMode::Catch;
-    map.is_convert = true;
-}
 
 pub fn convert_objects(
     map: &Beatmap,

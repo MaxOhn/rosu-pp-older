@@ -2,6 +2,7 @@
 mod util;
 
 mod any;
+mod any_2024;
 
 pub mod osu_2014_july;
 pub mod osu_2014_may;

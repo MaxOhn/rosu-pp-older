@@ -1,7 +1,7 @@
 use rosu_map::util::Pos;
-use rosu_pp::{model::mode::GameMode, Beatmap};
+use rosu_pp::{model::mode::GameMode, Beatmap, Difficulty};
 
-use crate::any::difficulty::Difficulty;
+use crate::any::difficulty::DifficultyExt;
 
 pub use self::{
     attributes::{OsuDifficultyAttributes, OsuPerformanceAttributes},
@@ -78,7 +78,7 @@ impl OsuStars {
         difficulty: &Difficulty,
         map: &Beatmap,
     ) -> OsuDifficultyAttributes {
-        let Ok(map) = map.convert_ref(GameMode::Osu, difficulty.get_mods()) else {
+        let Ok(map) = map.convert_ref(GameMode::Osu, &difficulty.get_mods()) else {
             return Default::default();
         };
 

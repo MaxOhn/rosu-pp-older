@@ -1,11 +1,12 @@
 use std::cmp;
 
 use crate::{
+    any::difficulty::skills::strain_decay,
     osu_2022::{difficulty_object::OsuDifficultyObject, osu_object::OsuObjectKind},
     util::{
         difficulty_object::IDifficultyObject,
         mods::Mods,
-        skills::{strain_decay, ISkill, Skill, StrainSkill},
+        skills::{ISkill, Skill, StrainSkill},
         strains_vec::StrainsVec,
     },
 };

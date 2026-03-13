@@ -1,10 +1,11 @@
 use std::{cmp, f64::consts::PI};
 
 use crate::{
+    any::difficulty::skills::strain_decay,
     osu_2022::difficulty_object::OsuDifficultyObject,
     util::{
         difficulty_object::IDifficultyObject,
-        skills::{strain_decay, ISkill, Skill},
+        skills::{ISkill, Skill},
         strains_vec::StrainsVec,
     },
 };

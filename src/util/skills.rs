@@ -1,9 +1,5 @@
 use super::strains_vec::StrainsVec;
 
-pub fn strain_decay(ms: f64, strain_decay_base: f64) -> f64 {
-    strain_decay_base.powf(ms / 1000.0)
-}
-
 /// Wrapper around a difficulty skill that carries a list of all difficulty
 /// objects.
 pub struct Skill<'a, S: ISkill> {

@@ -1,10 +1,8 @@
 use std::cmp;
 
 use crate::{
-    any::difficulty::{
-        object::IDifficultyObject,
-        skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
-    },
+    any::difficulty::{object::IDifficultyObject, skills::strain_decay},
+    any_2024::difficulty::skills::{ISkill, Skill, StrainDecaySkill},
     taiko_2024::{
         difficulty::{
             object::{TaikoDifficultyObject, TaikoDifficultyObjects},
@@ -172,7 +170,7 @@ impl ISkill for Rhythm {
 impl Skill<'_, Rhythm> {
     fn calculate_initial_strain(&mut self, time: f64, curr: &TaikoDifficultyObject) -> f64 {
         let prev_start_time = curr
-            .previous(0, &self.diff_objects.objects)
+            .previous(0, self.diff_objects)
             .map_or(0.0, |prev| prev.get().start_time);
 
         self.inner.curr_strain() * strain_decay(time - prev_start_time, STRAIN_DECAY_BASE)

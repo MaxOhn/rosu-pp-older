@@ -1,9 +1,9 @@
 use std::cmp;
 
-use rosu_pp::{any::HitResultPriority, model::mods::GameMods, Beatmap};
+use rosu_pp::{any::HitResultPriority, model::mods::GameMods, Beatmap, Difficulty};
 
 use crate::{
-    any::difficulty::Difficulty,
+    any::difficulty::DifficultyExt,
     util::{mods::Mods, special_functions},
 };
 
@@ -204,7 +204,7 @@ impl<'map> TaikoPP<'map> {
 
                     match priority {
                         HitResultPriority::WorstCase => n100 += remaining,
-                        HitResultPriority::BestCase | _ => n300 += remaining,
+                        HitResultPriority::BestCase => n300 += remaining,
                     }
                 }
                 (Some(_), None) => n100 += total_result_count.saturating_sub(n300 + misses),
@@ -239,7 +239,7 @@ impl<'map> TaikoPP<'map> {
                     (_, None) => n300 = remaining,
                     _ => n100 += remaining,
                 },
-                HitResultPriority::BestCase | _ => match (self.n300, self.n100) {
+                HitResultPriority::BestCase => match (self.n300, self.n100) {
                     (None, _) => n300 = remaining,
                     (_, None) => n100 = remaining,
                     _ => n300 += remaining,
@@ -273,7 +273,7 @@ impl<'map> TaikoPP<'map> {
         let (state, attrs) = self.generate_state();
 
         let inner = TaikoPerformanceInner {
-            mods: self.difficulty.get_mods(),
+            mods: &self.difficulty.get_mods(),
             state,
             attrs,
         };

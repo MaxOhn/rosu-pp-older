@@ -1,4 +1,4 @@
-use crate::any::difficulty::skills::{DifficultyValue, StrainSkill, UsedStrainSkills};
+use crate::any_2024::difficulty::skills::{DifficultyValue, StrainSkill, UsedStrainSkills};
 
 #[derive(Clone, Default)]
 pub struct OsuStrainSkill {

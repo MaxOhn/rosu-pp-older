@@ -1,10 +1,8 @@
 use std::f64::consts::E;
 
 use crate::{
-    any::difficulty::{
-        object::IDifficultyObject,
-        skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
-    },
+    any::difficulty::{object::IDifficultyObject, skills::strain_decay},
+    any_2024::difficulty::skills::{ISkill, Skill, StrainDecaySkill},
     taiko_2024::difficulty::{
         color::{
             alternating_mono_pattern::AlternatingMonoPattern, mono_streak::MonoStreak,
@@ -66,7 +64,7 @@ impl ISkill for Color {
 impl Skill<'_, Color> {
     fn calculate_initial_strain(&mut self, time: f64, curr: &TaikoDifficultyObject) -> f64 {
         let prev_start_time = curr
-            .previous(0, &self.diff_objects.objects)
+            .previous(0, self.diff_objects)
             .map_or(0.0, |prev| prev.get().start_time);
 
         self.inner.curr_strain() * strain_decay(time - prev_start_time, STRAIN_DECAY_BASE)

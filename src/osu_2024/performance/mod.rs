@@ -1,9 +1,9 @@
 use std::cmp;
 
-use rosu_pp::{any::HitResultPriority, Beatmap, GameMods};
+use rosu_pp::{any::HitResultPriority, Beatmap, Difficulty, GameMods};
 
 use crate::{
-    any::difficulty::Difficulty,
+    any::difficulty::DifficultyExt,
     util::{float_ext::FloatExt, mods::Mods},
 };
 
@@ -337,7 +337,7 @@ impl<'map> OsuPP<'map> {
 
                     match priority {
                         HitResultPriority::WorstCase => n50 += remaining,
-                        HitResultPriority::BestCase | _ => n300 += remaining,
+                        HitResultPriority::BestCase => n300 += remaining,
                     }
                 }
                 (Some(_), Some(_), None) => n50 = n_objects.saturating_sub(n300 + n100 + misses),
@@ -493,7 +493,7 @@ impl<'map> OsuPP<'map> {
                             n100 -= 5 * n;
                             n50 += 4 * n;
                         }
-                        HitResultPriority::BestCase | _ => {
+                        HitResultPriority::BestCase => {
                             // Shift n50 to n100 by sacrificing n300
                             let n = cmp::min(n300, n50 / 4);
                             n300 -= n;
@@ -513,7 +513,7 @@ impl<'map> OsuPP<'map> {
                     (.., None) => n300 = remaining,
                     _ => n50 += remaining,
                 },
-                HitResultPriority::BestCase | _ => match (self.n300, self.n100, self.n50) {
+                HitResultPriority::BestCase => match (self.n300, self.n100, self.n50) {
                     (None, ..) => n300 = remaining,
                     (_, None, _) => n100 = remaining,
                     (.., None) => n50 = remaining,
@@ -609,7 +609,7 @@ impl<'map> OsuPP<'map> {
 
         let inner = OsuPerformanceInner {
             attrs,
-            mods,
+            mods: &mods,
             acc,
             state,
             effective_miss_count,

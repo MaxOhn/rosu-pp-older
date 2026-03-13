@@ -1,11 +1,12 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 
 use crate::{
+    any::difficulty::skills::strain_decay,
     osu_2022::difficulty_object::OsuDifficultyObject,
     util::{
         difficulty_object::IDifficultyObject,
         float_ext::FloatExt,
-        skills::{strain_decay, ISkill, Skill},
+        skills::{ISkill, Skill},
         strains_vec::StrainsVec,
     },
 };

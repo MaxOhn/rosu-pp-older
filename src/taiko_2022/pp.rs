@@ -179,7 +179,7 @@ impl<'map> TaikoPP<'map> {
 
                     match priority {
                         HitResultPriority::WorstCase => n100 += remaining,
-                        HitResultPriority::BestCase | _ => n300 += remaining,
+                        HitResultPriority::BestCase => n300 += remaining,
                     }
                 }
                 (Some(_), None) => n100 += total_result_count.saturating_sub(n300 + misses),
@@ -214,7 +214,7 @@ impl<'map> TaikoPP<'map> {
                     (_, None) => n300 = remaining,
                     _ => n100 += remaining,
                 },
-                HitResultPriority::BestCase | _ => match (self.n300, self.n100) {
+                HitResultPriority::BestCase => match (self.n300, self.n100) {
                     (None, _) => n300 = remaining,
                     (_, None) => n100 = remaining,
                     _ => n300 += remaining,

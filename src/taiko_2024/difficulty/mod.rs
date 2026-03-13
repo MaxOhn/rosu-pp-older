@@ -5,10 +5,10 @@ use object::{TaikoDifficultyObject, TaikoDifficultyObjects};
 use rosu_map::section::general::GameMode;
 use rosu_pp::{
     model::{beatmap::HitWindows, mode::ConvertError},
-    Beatmap,
+    Beatmap, Difficulty,
 };
 
-use crate::any::difficulty::{skills::Skill, Difficulty};
+use crate::{any::difficulty::DifficultyExt, any_2024::difficulty::skills::Skill};
 
 use self::skills::{color::Color, rhythm::Rhythm, stamina::Stamina, TaikoSkills};
 
@@ -28,17 +28,14 @@ pub fn difficulty(
     difficulty: &Difficulty,
     map: &Beatmap,
 ) -> Result<TaikoDifficultyAttributes, ConvertError> {
-    let map = map.convert_ref(GameMode::Taiko, difficulty.get_mods())?;
+    let map = map.convert_ref(GameMode::Taiko, &difficulty.get_mods())?;
 
     let HitWindows {
         od_great,
         od_ok,
         od_meh: _,
         ar: _,
-    } = map
-        .attributes()
-        .difficulty(&difficulty.as_rosu())
-        .hit_windows();
+    } = map.attributes().difficulty(difficulty).hit_windows();
 
     let DifficultyValues { skills, max_combo } = DifficultyValues::calculate(difficulty, &map);
 

@@ -1,7 +1,4 @@
-use rosu_pp::{
-    model::mode::{GameMode, IGameMode},
-    Beatmap, Difficulty,
-};
+use rosu_pp::{model::mode::GameMode, Beatmap, Difficulty};
 
 use crate::any::difficulty::DifficultyExt;
 

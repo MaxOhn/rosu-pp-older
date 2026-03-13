@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub mod control_points;
 pub mod difficulty;
 pub mod difficulty_object;

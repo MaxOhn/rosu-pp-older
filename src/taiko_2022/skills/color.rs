@@ -1,6 +1,7 @@
 use std::f64::consts::E;
 
 use crate::{
+    any::difficulty::skills::strain_decay,
     taiko_2022::{
         color::{
             alternating_mono_pattern::AlternatingMonoPattern, mono_streak::MonoStreak,
@@ -10,7 +11,7 @@ use crate::{
     },
     util::{
         difficulty_object::IDifficultyObject,
-        skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
+        skills::{ISkill, Skill, StrainDecaySkill},
         strains_vec::StrainsVec,
         sync::{RefCount, Weak},
     },

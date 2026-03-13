@@ -1,7 +1,10 @@
-use crate::util::{
-    difficulty_object::IDifficultyObject,
-    skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
-    strains_vec::StrainsVec,
+use crate::{
+    any::difficulty::skills::strain_decay,
+    util::{
+        difficulty_object::IDifficultyObject,
+        skills::{ISkill, Skill, StrainDecaySkill},
+        strains_vec::StrainsVec,
+    },
 };
 
 use super::difficulty_object::CatchDifficultyObject;

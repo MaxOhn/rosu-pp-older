@@ -1,7 +1,7 @@
 use std::slice::Iter;
 
 use crate::{
-    any::difficulty::object::IDifficultyObject,
+    any::difficulty::object::{HasStartTime, IDifficultyObject, IDifficultyObjects},
     taiko_2024::object::{HitType, TaikoObject},
     util::sync::RefCount,
 };
@@ -147,6 +147,14 @@ impl TaikoDifficultyObjects {
     }
 }
 
+impl IDifficultyObjects for TaikoDifficultyObjects {
+    type DifficultyObject = RefCount<TaikoDifficultyObject>;
+
+    fn get(&self, idx: usize) -> Option<&Self::DifficultyObject> {
+        self.objects.get(idx)
+    }
+}
+
 #[rustfmt::skip]
 pub static COMMON_RHYTHMS: [HitObjectRhythm; 9] = [
     HitObjectRhythm { id: 0, ratio: 1.0, difficulty: 0.0 },
@@ -180,8 +188,16 @@ fn closest_rhythm(
 }
 
 impl IDifficultyObject for TaikoDifficultyObject {
+    type DifficultyObjects = TaikoDifficultyObjects;
+
     fn idx(&self) -> usize {
         self.idx
+    }
+}
+
+impl HasStartTime for RefCount<TaikoDifficultyObject> {
+    fn start_time(&self) -> f64 {
+        self.get().start_time
     }
 }
 

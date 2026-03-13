@@ -3,15 +3,13 @@ use std::{cmp, pin::Pin};
 use rosu_map::section::general::GameMode;
 use rosu_pp::{
     model::{beatmap::BeatmapAttributes, mode::ConvertError},
-    Beatmap, GameMods,
+    Beatmap, Difficulty, GameMods,
 };
 use skills::{flashlight::Flashlight, strain::OsuStrainSkill};
 
 use crate::{
-    any::difficulty::{
-        skills::{DifficultyValue, Skill, UsedStrainSkills},
-        Difficulty,
-    },
+    any::difficulty::DifficultyExt,
+    any_2024::difficulty::skills::{DifficultyValue, Skill, UsedStrainSkills},
     osu_2024::{
         convert::convert_objects,
         difficulty::{object::OsuDifficultyObject, scaling_factor::ScalingFactor},
@@ -38,7 +36,7 @@ pub fn difficulty(
     difficulty: &Difficulty,
     map: &Beatmap,
 ) -> Result<OsuDifficultyAttributes, ConvertError> {
-    let map = map.convert_ref(GameMode::Osu, difficulty.get_mods())?;
+    let map = map.convert_ref(GameMode::Osu, &difficulty.get_mods())?;
 
     let DifficultyValues {
         skills:
@@ -61,7 +59,7 @@ pub fn difficulty(
 
     DifficultyValues::eval(
         &mut attrs,
-        mods,
+        &mods,
         &aim_difficulty_value,
         &aim_no_sliders_difficulty_value,
         &speed_difficulty_value,
@@ -82,7 +80,7 @@ pub struct OsuDifficultySetup {
 impl OsuDifficultySetup {
     pub fn new(difficulty: &Difficulty, map: &Beatmap) -> Self {
         let clock_rate = difficulty.get_clock_rate();
-        let map_attrs = map.attributes().difficulty(&difficulty.as_rosu()).build();
+        let map_attrs = map.attributes().difficulty(difficulty).build();
         let scaling_factor = ScalingFactor::new(map_attrs.cs);
 
         let attrs = OsuDifficultyAttributes {
@@ -134,7 +132,7 @@ impl DifficultyValues {
         let diff_objects =
             Self::create_difficulty_objects(difficulty, &scaling_factor, osu_object_iter);
 
-        let mut skills = OsuSkills::new(mods, &scaling_factor, &map_attrs, time_preempt);
+        let mut skills = OsuSkills::new(&mods, &scaling_factor, &map_attrs, time_preempt);
 
         {
             let mut aim = Skill::new(&mut skills.aim, &diff_objects);

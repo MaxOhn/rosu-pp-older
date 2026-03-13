@@ -51,7 +51,20 @@ impl<'map> OsuPerformance<'map> {
     /// have been calculated for the same map and [`Difficulty`] settings.
     /// Otherwise, the final attributes will be incorrect.
     pub fn new(map: &'map Beatmap) -> Self {
-        map.into_performance()
+        Self {
+            map_or_attrs: map.into(),
+            difficulty: Difficulty::new(),
+            acc: None,
+            combo: None,
+            large_tick_hits: None,
+            small_tick_hits: None,
+            slider_end_hits: None,
+            n300: None,
+            n100: None,
+            n50: None,
+            misses: None,
+            hitresult_priority: HitResultPriority::BestCase,
+        }
     }
 
     /// Specify mods.
@@ -291,7 +304,8 @@ impl<'map> OsuPerformance<'map> {
     /// Create the [`OsuScoreState`] that will be used for performance calculation.
     #[allow(clippy::too_many_lines)]
     pub fn generate_state(&mut self) -> Result<OsuScoreState, ConvertError> {
-        self.map_or_attrs.insert_attrs(&self.difficulty)?;
+        self.map_or_attrs
+            .insert_attrs(|map| super::difficulty::difficulty(&self.difficulty, map))?;
 
         // SAFETY: We just calculated and inserted the attributes.
         let attrs = unsafe { self.map_or_attrs.get_attrs() };
@@ -378,9 +392,7 @@ impl<'map> OsuPerformance<'map> {
                     let remaining = n_objects.saturating_sub(n300 + n100 + n50 + misses);
 
                     match priority {
-                        HitResultPriority::BestCase | HitResultPriority::Fastest => {
-                            n300 += remaining;
-                        }
+                        HitResultPriority::BestCase => n300 += remaining,
                         HitResultPriority::WorstCase => n50 += remaining,
                     }
                 }
@@ -388,76 +400,129 @@ impl<'map> OsuPerformance<'map> {
                 (Some(_), None, Some(_)) => n100 = n_objects.saturating_sub(n300 + n50 + misses),
                 (None, Some(_), Some(_)) => n300 = n_objects.saturating_sub(n100 + n50 + misses),
                 (Some(_), None, None) => {
-                    if let HitResultPriority::Fastest = priority {
-                        //     (300N + S) - 300A - 50C - s = 100B
-                        // <=> (300N + S) - 50R - 250A - s = 50B
-                        // <=> ((300N + S) - 50R - 250A - s) / 50 = B
-                        n100 = (f64::round(target_total) as u32)
-                            .saturating_sub(50 * n_remaining + 250 * n300 + slider_acc_value)
-                            / 50;
-                        n50 = n_objects.saturating_sub(n300 + n100 + misses);
-                    } else {
-                        let mut best_dist = f64::MAX;
+                    let mut best_dist = f64::MAX;
 
-                        n300 = cmp::min(n300, n_remaining);
-                        let n_remaining = n_remaining - n300;
+                    n300 = cmp::min(n300, n_remaining);
+                    let n_remaining = n_remaining - n300;
 
-                        let raw_n100 = (target_total
-                            - f64::from(50 * n_remaining + 300 * n300 + slider_acc_value))
-                            / 50.0;
-                        let min_n100 = cmp::min(n_remaining, raw_n100.floor() as u32);
-                        let max_n100 = cmp::min(n_remaining, raw_n100.ceil() as u32);
+                    let raw_n100 = (target_total
+                        - f64::from(50 * n_remaining + 300 * n300 + slider_acc_value))
+                        / 50.0;
+                    let min_n100 = cmp::min(n_remaining, raw_n100.floor() as u32);
+                    let max_n100 = cmp::min(n_remaining, raw_n100.ceil() as u32);
 
-                        for new100 in min_n100..=max_n100 {
-                            let new50 = n_remaining - new100;
+                    for new100 in min_n100..=max_n100 {
+                        let new50 = n_remaining - new100;
 
-                            let state = NoComboState {
-                                n300,
-                                n100: new100,
-                                n50: new50,
-                                misses,
-                                large_tick_hits,
-                                small_tick_hits,
-                                slider_end_hits,
-                            };
+                        let state = NoComboState {
+                            n300,
+                            n100: new100,
+                            n50: new50,
+                            misses,
+                            large_tick_hits,
+                            small_tick_hits,
+                            slider_end_hits,
+                        };
 
-                            let dist = (acc - state.accuracy(origin)).abs();
+                        let dist = (acc - state.accuracy(origin)).abs();
 
-                            if dist < best_dist {
-                                best_dist = dist;
-                                n100 = new100;
-                                n50 = new50;
-                            }
+                        if dist < best_dist {
+                            best_dist = dist;
+                            n100 = new100;
+                            n50 = new50;
                         }
                     }
                 }
                 (None, Some(_), None) => {
-                    if let HitResultPriority::Fastest = priority {
-                        //     (300N + S)a - 100B - 50C - s = 300A
-                        // <=> (300N + S)a - 50R - 50B - s = 250A
-                        // <=> ((300N + S)a - 50R - 50B - s) / 250 = A
-                        n300 = (f64::round(target_total) as u32)
-                            .saturating_sub(50 * n_remaining + 50 * n100 + slider_acc_value)
-                            / 250;
-                        n50 = n_objects.saturating_sub(n300 + n100 + misses);
-                    } else {
-                        let mut best_dist = f64::MAX;
+                    let mut best_dist = f64::MAX;
 
-                        n100 = cmp::min(n100, n_remaining);
-                        let n_remaining = n_remaining - n100;
+                    n100 = cmp::min(n100, n_remaining);
+                    let n_remaining = n_remaining - n100;
 
-                        let raw_n300 = (target_total
-                            - f64::from(50 * n_remaining + 100 * n100 + slider_acc_value))
-                            / 250.0;
-                        let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
-                        let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
+                    let raw_n300 = (target_total
+                        - f64::from(50 * n_remaining + 100 * n100 + slider_acc_value))
+                        / 250.0;
+                    let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
+                    let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
 
-                        for new300 in min_n300..=max_n300 {
-                            let new50 = n_remaining - new300;
+                    for new300 in min_n300..=max_n300 {
+                        let new50 = n_remaining - new300;
+
+                        let state = NoComboState {
+                            n300: new300,
+                            n100,
+                            n50: new50,
+                            misses,
+                            large_tick_hits,
+                            small_tick_hits,
+                            slider_end_hits,
+                        };
+
+                        let curr_dist = (acc - state.accuracy(origin)).abs();
+
+                        if curr_dist < best_dist {
+                            best_dist = curr_dist;
+                            n300 = new300;
+                            n50 = new50;
+                        }
+                    }
+                }
+                (None, None, Some(_)) => {
+                    let mut best_dist = f64::MAX;
+
+                    n50 = cmp::min(n50, n_remaining);
+                    let n_remaining = n_remaining - n50;
+
+                    let raw_n300 = (target_total + f64::from(100 * misses + 50 * n50)
+                        - f64::from(100 * n_objects + slider_acc_value))
+                        / 200.0;
+
+                    let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
+                    let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
+
+                    for new300 in min_n300..=max_n300 {
+                        let new100 = n_remaining - new300;
+
+                        let state = NoComboState {
+                            n300: new300,
+                            n100: new100,
+                            n50,
+                            misses,
+                            large_tick_hits,
+                            small_tick_hits,
+                            slider_end_hits,
+                        };
+
+                        let curr_dist = (acc - state.accuracy(origin)).abs();
+
+                        if curr_dist < best_dist {
+                            best_dist = curr_dist;
+                            n300 = new300;
+                            n100 = new100;
+                        }
+                    }
+                }
+                (None, None, None) => {
+                    let mut best_dist = f64::MAX;
+
+                    let raw_n300 =
+                        (target_total - f64::from(50 * n_remaining + slider_acc_value)) / 250.0;
+                    let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
+                    let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
+
+                    for new300 in min_n300..=max_n300 {
+                        let raw_n100 = (target_total
+                            - f64::from(50 * n_remaining + 250 * new300 + slider_acc_value))
+                            / 50.0;
+                        let min_n100 = cmp::min(raw_n100.floor() as u32, n_remaining - new300);
+                        let max_n100 = cmp::min(raw_n100.ceil() as u32, n_remaining - new300);
+
+                        for new100 in min_n100..=max_n100 {
+                            let new50 = n_remaining - new300 - new100;
 
                             let state = NoComboState {
                                 n300: new300,
-                                n100,
+                                n100: new100,
                                 n50: new50,
                                 misses,
                                 large_tick_hits,
@@ -470,126 +535,26 @@ impl<'map> OsuPerformance<'map> {
                             if curr_dist < best_dist {
                                 best_dist = curr_dist;
                                 n300 = new300;
+                                n100 = new100;
                                 n50 = new50;
                             }
                         }
                     }
-                }
-                (None, None, Some(_)) => {
-                    if let HitResultPriority::Fastest = priority {
-                        //     (300N + S)a - 100B - 50C - s = 300A
-                        // <=> (300N + S)a - 100R + 50C - s = 200A
-                        // <=> ((300N + S)a - 100R + 50C - s) / 200 = A
-                        n300 = (f64::round(target_total) as u32 + 50 * n50)
-                            .saturating_sub(100 * n_remaining + slider_acc_value)
-                            / 200;
-                        n100 = n_objects.saturating_sub(n300 + n50 + misses);
-                    } else {
-                        let mut best_dist = f64::MAX;
 
-                        n50 = cmp::min(n50, n_remaining);
-                        let n_remaining = n_remaining - n50;
-
-                        let raw_n300 = (target_total + f64::from(100 * misses + 50 * n50)
-                            - f64::from(100 * n_objects + slider_acc_value))
-                            / 200.0;
-
-                        let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
-                        let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
-
-                        for new300 in min_n300..=max_n300 {
-                            let new100 = n_remaining - new300;
-
-                            let state = NoComboState {
-                                n300: new300,
-                                n100: new100,
-                                n50,
-                                misses,
-                                large_tick_hits,
-                                small_tick_hits,
-                                slider_end_hits,
-                            };
-
-                            let curr_dist = (acc - state.accuracy(origin)).abs();
-
-                            if curr_dist < best_dist {
-                                best_dist = curr_dist;
-                                n300 = new300;
-                                n100 = new100;
-                            }
+                    match priority {
+                        HitResultPriority::BestCase => {
+                            // Shift n50 to n100 by sacrificing n300
+                            let n = cmp::min(n300, n50 / 4);
+                            n300 -= n;
+                            n100 += 5 * n;
+                            n50 -= 4 * n;
                         }
-                    }
-                }
-                (None, None, None) => {
-                    if let HitResultPriority::Fastest = priority {
-                        //     (300N + S)a - 100B - 50C - s = 300A
-                        // <=> (300N + S)a - 50R - 50B - s = 250A
-                        // <=> ((300N + S)a - 50R - 50B - s) / 250 = A
-
-                        //     (300N + S)a - 300A - 50C - s = 100B
-                        // <=> (300N + S)a - 50R - 250A - s = 50B
-                        // <=> ((300N + S)a - 50R - 250A - s) / 50 = B
-                        let delta = (f64::round_ties_even(target_total) as u32)
-                            .saturating_sub(50 * n_remaining + slider_acc_value);
-
-                        n300 = delta / 250;
-                        n100 = (delta % 250) / 50;
-                        n50 = n_objects.saturating_sub(n300 + n100 + misses);
-                    } else {
-                        let mut best_dist = f64::MAX;
-
-                        let raw_n300 =
-                            (target_total - f64::from(50 * n_remaining + slider_acc_value)) / 250.0;
-                        let min_n300 = cmp::min(n_remaining, raw_n300.floor() as u32);
-                        let max_n300 = cmp::min(n_remaining, raw_n300.ceil() as u32);
-
-                        for new300 in min_n300..=max_n300 {
-                            let raw_n100 = (target_total
-                                - f64::from(50 * n_remaining + 250 * new300 + slider_acc_value))
-                                / 50.0;
-                            let min_n100 = cmp::min(raw_n100.floor() as u32, n_remaining - new300);
-                            let max_n100 = cmp::min(raw_n100.ceil() as u32, n_remaining - new300);
-
-                            for new100 in min_n100..=max_n100 {
-                                let new50 = n_remaining - new300 - new100;
-
-                                let state = NoComboState {
-                                    n300: new300,
-                                    n100: new100,
-                                    n50: new50,
-                                    misses,
-                                    large_tick_hits,
-                                    small_tick_hits,
-                                    slider_end_hits,
-                                };
-
-                                let curr_dist = (acc - state.accuracy(origin)).abs();
-
-                                if curr_dist < best_dist {
-                                    best_dist = curr_dist;
-                                    n300 = new300;
-                                    n100 = new100;
-                                    n50 = new50;
-                                }
-                            }
-                        }
-
-                        match priority {
-                            HitResultPriority::BestCase => {
-                                // Shift n50 to n100 by sacrificing n300
-                                let n = cmp::min(n300, n50 / 4);
-                                n300 -= n;
-                                n100 += 5 * n;
-                                n50 -= 4 * n;
-                            }
-                            HitResultPriority::WorstCase => {
-                                // Shift n100 to n50 by gaining n300
-                                let n = n100 / 5;
-                                n300 += n;
-                                n100 -= 5 * n;
-                                n50 += 4 * n;
-                            }
-                            HitResultPriority::Fastest => unreachable!(),
+                        HitResultPriority::WorstCase => {
+                            // Shift n100 to n50 by gaining n300
+                            let n = n100 / 5;
+                            n300 += n;
+                            n100 -= 5 * n;
+                            n50 += 4 * n;
                         }
                     }
                 }
@@ -598,14 +563,12 @@ impl<'map> OsuPerformance<'map> {
             let remaining = n_objects.saturating_sub(n300 + n100 + n50 + misses);
 
             match priority {
-                HitResultPriority::BestCase | HitResultPriority::Fastest => {
-                    match (self.n300, self.n100, self.n50) {
-                        (None, ..) => n300 = remaining,
-                        (_, None, _) => n100 = remaining,
-                        (.., None) => n50 = remaining,
-                        _ => n300 += remaining,
-                    }
-                }
+                HitResultPriority::BestCase => match (self.n300, self.n100, self.n50) {
+                    (None, ..) => n300 = remaining,
+                    (_, None, _) => n100 = remaining,
+                    (.., None) => n50 = remaining,
+                    _ => n300 += remaining,
+                },
                 HitResultPriority::WorstCase => match (self.n50, self.n100, self.n300) {
                     (None, ..) => n50 = remaining,
                     (_, None, _) => n100 = remaining,

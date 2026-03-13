@@ -1,11 +1,12 @@
 use crate::{
+    any::difficulty::skills::strain_decay,
     taiko_2022::{
         difficulty_object::{TaikoDifficultyObject, TaikoDifficultyObjects},
         taiko_object::HitType,
     },
     util::{
         difficulty_object::IDifficultyObject,
-        skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
+        skills::{ISkill, Skill, StrainDecaySkill},
         strains_vec::StrainsVec,
     },
 };

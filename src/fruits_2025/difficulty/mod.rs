@@ -4,7 +4,10 @@ use rosu_pp::{
     Beatmap, Difficulty,
 };
 
-use crate::{any::difficulty::DifficultyExt, util::mods::GameModsExt};
+use crate::{
+    any::difficulty::{skills::StrainSkill, DifficultyExt},
+    util::mods::GameModsExt,
+};
 
 use super::{
     catcher::Catcher, convert::convert_objects, difficulty::object::CatchDifficultyObject,

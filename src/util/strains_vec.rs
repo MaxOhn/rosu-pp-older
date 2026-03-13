@@ -1,7 +1,10 @@
 use std::{
     iter::{self, Copied},
+    mem,
     slice::{self, Iter},
 };
+
+use crate::util::hint::{likely, unlikely};
 
 use self::entry::StrainsEntry;
 
@@ -132,6 +135,16 @@ impl StrainsVec {
     #[inline]
     pub fn iter(&self) -> StrainsIter<'_> {
         StrainsIter::new(self)
+    }
+
+    /// Converts this [`StrainsVec`] into `Vec<f64>`.
+    ///
+    /// # Safety
+    ///
+    /// `self` may not include *any* zeros.
+    pub unsafe fn transmute_into_vec(self) -> Vec<f64> {
+        // SAFETY: `StrainsEntry` has the same properties as `f64`
+        unsafe { mem::transmute::<Vec<StrainsEntry>, Vec<f64>>(self.inner) }
     }
 
     /// Allocates a new `Vec<f64>` to store all values, including zeros.
@@ -296,7 +309,7 @@ mod entry {
         }
 
         #[inline]
-        pub fn as_value_mut(&mut self) -> &mut f64 {
+        pub const fn as_value_mut(&mut self) -> &mut f64 {
             unsafe { &mut self.value }
         }
 
@@ -306,41 +319,17 @@ mod entry {
         }
 
         #[inline]
-        pub fn incr_zero_count(&mut self) {
+        pub const fn incr_zero_count(&mut self) {
             unsafe {
                 self.zero_count += 1;
             }
         }
 
         #[inline]
-        pub fn decr_zero_count(&mut self) {
+        pub const fn decr_zero_count(&mut self) {
             unsafe {
                 self.zero_count -= 1;
             }
         }
     }
-}
-
-#[inline]
-#[cold]
-const fn cold() {}
-
-/// Hints at the compiler that the condition is likely `true`.
-#[inline]
-const fn likely(b: bool) -> bool {
-    if !b {
-        cold();
-    }
-
-    b
-}
-
-/// Hints at the compiler that the condition is likely `false`.
-#[inline]
-const fn unlikely(b: bool) -> bool {
-    if b {
-        cold();
-    }
-
-    b
 }

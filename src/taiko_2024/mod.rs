@@ -1,6 +1,6 @@
-use rosu_pp::{model::mode::GameMode, Beatmap};
+use rosu_pp::{model::mode::GameMode, Beatmap, Difficulty};
 
-use crate::any::difficulty::Difficulty;
+use crate::any::difficulty::DifficultyExt;
 
 pub use self::{
     attributes::{TaikoDifficultyAttributes, TaikoPerformanceAttributes},
@@ -74,7 +74,7 @@ impl TaikoStars {
         difficulty: &Difficulty,
         map: &Beatmap,
     ) -> TaikoDifficultyAttributes {
-        let Ok(map) = map.convert_ref(GameMode::Taiko, difficulty.get_mods()) else {
+        let Ok(map) = map.convert_ref(GameMode::Taiko, &difficulty.get_mods()) else {
             return Default::default();
         };
 

@@ -1,8 +1,6 @@
 use crate::{
-    any::difficulty::{
-        object::IDifficultyObject,
-        skills::{strain_decay, ISkill, Skill, StrainDecaySkill, StrainSkill},
-    },
+    any::difficulty::{object::IDifficultyObject, skills::strain_decay},
+    any_2024::difficulty::skills::{ISkill, Skill, StrainDecaySkill, StrainSkill},
     taiko_2024::{
         difficulty::object::{TaikoDifficultyObject, TaikoDifficultyObjects},
         object::HitType,
@@ -52,7 +50,7 @@ impl Skill<'_, Stamina> {
         }
 
         let prev_start_time = curr
-            .previous(0, &self.diff_objects.objects)
+            .previous(0, self.diff_objects)
             .map_or(0.0, |prev| prev.get().start_time);
 
         self.curr_strain() * strain_decay(time - prev_start_time, STRAIN_DECAY_BASE)

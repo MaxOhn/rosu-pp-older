@@ -1,6 +1,7 @@
 use std::cmp;
 
 use crate::{
+    any::difficulty::skills::strain_decay,
     taiko_2022::{
         difficulty_object::{TaikoDifficultyObject, TaikoDifficultyObjects},
         rhythm::HitObjectRhythm,
@@ -10,7 +11,7 @@ use crate::{
         difficulty_object::IDifficultyObject,
         float_ext::FloatExt,
         limited_queue::LimitedQueue,
-        skills::{strain_decay, ISkill, Skill, StrainDecaySkill},
+        skills::{ISkill, Skill, StrainDecaySkill},
         strains_vec::StrainsVec,
     },
 };

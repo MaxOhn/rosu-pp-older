@@ -1,7 +1,3 @@
-use std::mem;
-
-use super::performance::CatchPerformance;
-
 /// The result of a difficulty calculation on an osu!catch map.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CatchDifficultyAttributes {
@@ -34,25 +30,10 @@ impl CatchDifficultyAttributes {
         self.is_convert
     }
 
-    /// Returns a builder for performance calculation.
-    pub fn performance<'a>(self) -> CatchPerformance<'a> {
-        self.into()
-    }
-
     pub(crate) const fn set_object_count(&mut self, count: &ObjectCount) {
         self.n_fruits = count.fruits;
         self.n_droplets = count.droplets;
         self.n_tiny_droplets = count.tiny_droplets;
-    }
-
-    pub(crate) const fn add_object_count(&mut self, count: GradualObjectCount) {
-        if count.fruit {
-            self.n_fruits += 1;
-        } else {
-            self.n_droplets += 1;
-        }
-
-        self.n_tiny_droplets += count.tiny_droplets;
     }
 }
 
@@ -87,11 +68,6 @@ impl CatchPerformanceAttributes {
     pub const fn is_convert(&self) -> bool {
         self.difficulty.is_convert
     }
-
-    /// Returns a builder for performance calculation.
-    pub fn performance<'a>(self) -> CatchPerformance<'a> {
-        self.difficulty.into()
-    }
 }
 
 impl From<CatchPerformanceAttributes> for CatchDifficultyAttributes {
@@ -107,89 +83,40 @@ pub struct ObjectCount {
     tiny_droplets: u32,
 }
 
-#[derive(Copy, Clone, Default)]
-pub struct GradualObjectCount {
-    fruit: bool,
-    tiny_droplets: u32,
-}
-
-pub enum ObjectCountBuilder {
-    Regular {
-        count: ObjectCount,
-        take: usize,
-    },
-    Gradual {
-        count: GradualObjectCount,
-        all: Vec<GradualObjectCount>,
-    },
+pub struct ObjectCountBuilder {
+    count: ObjectCount,
+    take: usize,
 }
 
 impl ObjectCountBuilder {
     pub fn new_regular(take: usize) -> Self {
-        Self::Regular {
+        Self {
             count: ObjectCount::default(),
             take,
         }
     }
 
-    pub fn new_gradual() -> Self {
-        Self::Gradual {
-            count: GradualObjectCount::default(),
-            all: Vec::with_capacity(512),
-        }
-    }
-
     pub fn into_regular(self) -> ObjectCount {
-        if let Self::Regular { count, .. } = self {
-            count
-        } else {
-            unreachable!()
-        }
-    }
-
-    pub fn into_gradual(self) -> Vec<GradualObjectCount> {
-        if let Self::Gradual { all, .. } = self {
-            all
-        } else {
-            unreachable!()
-        }
+        self.count
     }
 
     pub fn record_fruit(&mut self) {
-        match self {
-            Self::Regular { count, take } => {
-                if *take > 0 {
-                    *take -= 1;
-                    count.fruits += 1;
-                }
-            }
-            Self::Gradual { count, all } => {
-                count.fruit = true;
-                all.push(mem::take(count));
-            }
+        if self.take > 0 {
+            self.take -= 1;
+            self.count.fruits += 1;
         }
     }
 
     pub fn record_droplet(&mut self) {
-        match self {
-            Self::Regular { count, take } => {
-                if *take > 0 {
-                    *take -= 1;
-                    count.droplets += 1;
-                }
-            }
-            Self::Gradual { count, all } => all.push(mem::take(count)),
+        if self.take > 0 {
+            self.take -= 1;
+            self.count.droplets += 1;
         }
     }
 
     pub const fn record_tiny_droplets(&mut self, n: u32) {
-        match self {
-            Self::Regular { count, take } => {
-                if *take > 0 {
-                    count.tiny_droplets += n;
-                }
-            }
-            Self::Gradual { count, .. } => count.tiny_droplets += n,
+        if self.take > 0 {
+            self.count.tiny_droplets += n;
         }
     }
 }

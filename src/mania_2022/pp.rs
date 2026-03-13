@@ -205,7 +205,7 @@ impl<'map> ManiaPP<'map> {
 
                     match priority {
                         HitResultPriority::WorstCase => n50 += remaining,
-                        HitResultPriority::BestCase | _ => n320 += remaining,
+                        HitResultPriority::BestCase => n320 += remaining,
                     }
                 }
 
@@ -233,7 +233,7 @@ impl<'map> ManiaPP<'map> {
 
                     match priority {
                         HitResultPriority::WorstCase => n300 = n_remaining,
-                        HitResultPriority::BestCase | _ => n320 = n_remaining,
+                        HitResultPriority::BestCase => n320 = n_remaining,
                     }
                 }
 
@@ -276,7 +276,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -321,7 +321,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -366,7 +366,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -428,7 +428,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -491,7 +491,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -555,7 +555,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -640,7 +640,7 @@ impl<'map> ManiaPP<'map> {
                     match (self.n320, self.n300) {
                         (None, None) => match priority {
                             HitResultPriority::WorstCase => n300 = n3x0,
-                            HitResultPriority::BestCase | _ => n320 = n3x0,
+                            HitResultPriority::BestCase => n320 = n3x0,
                         },
                         (Some(_), None) => n300 = n3x0 - n320,
                         (None, Some(_)) => n320 = n3x0 - n300,
@@ -672,7 +672,7 @@ impl<'map> ManiaPP<'map> {
                         _ => n50 += remaining,
                     }
                 }
-                HitResultPriority::BestCase | _ => {
+                HitResultPriority::BestCase => {
                     match (self.n320, self.n300, self.n200, self.n100, self.n50) {
                         (None, ..) => n320 = remaining,
                         (_, None, ..) => n300 = remaining,

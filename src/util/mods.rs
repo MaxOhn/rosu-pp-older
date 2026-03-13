@@ -315,7 +315,7 @@ impl GameModsExt for GameMods {
             }
         }
 
-        custom_hardrock_offsets(self).unwrap_or_else(|| self.hr())
+        custom_hardrock_offsets(self).unwrap_or_else(|| GameModsExt::hr(self))
     }
 
     fn no_slider_head_acc(&self, lazer: bool) -> bool {

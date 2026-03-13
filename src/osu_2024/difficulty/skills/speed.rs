@@ -1,10 +1,8 @@
 use std::{cmp, f64::consts::PI};
 
 use crate::{
-    any::difficulty::{
-        object::IDifficultyObject,
-        skills::{strain_decay, DifficultyValue, ISkill, Skill, UsedStrainSkills},
-    },
+    any::difficulty::{object::IDifficultyObject, skills::strain_decay},
+    any_2024::difficulty::skills::{DifficultyValue, ISkill, Skill, UsedStrainSkills},
     osu_2024::difficulty::object::OsuDifficultyObject,
     util::difficulty::{bpm_to_milliseconds, logistic, milliseconds_to_bpm},
 };

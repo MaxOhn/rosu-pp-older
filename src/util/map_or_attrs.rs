@@ -13,10 +13,10 @@ pub enum MapOrAttrs<'map, A> {
 impl<A> MapOrAttrs<'_, A> {
     pub fn insert_attrs<F>(&mut self, attrs_fn: F) -> Result<(), ConvertError>
     where
-        F: FnOnce() -> Result<A, ConvertError>,
+        F: FnOnce(&Beatmap) -> Result<A, ConvertError>,
     {
         if let Self::Map(map) = self {
-            *self = Self::Attrs(attrs_fn()?)
+            *self = Self::Attrs(attrs_fn(map)?)
         }
 
         Ok(())
@@ -57,7 +57,7 @@ impl<A: Debug> Debug for MapOrAttrs<'_, A> {
     }
 }
 
-impl<A> PartialEq for MapOrAttrs<'_, A> {
+impl<A: PartialEq> PartialEq for MapOrAttrs<'_, A> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Map(a), Self::Map(b)) => a == b,

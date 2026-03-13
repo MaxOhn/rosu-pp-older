@@ -4,7 +4,9 @@ use rosu_pp::GameMods;
 
 use crate::{
     osu_2025::{
-        difficulty::skills::{aim::Aim, flashlight::Flashlight, speed::Speed},
+        difficulty::skills::{
+            aim::Aim, flashlight::Flashlight, speed::Speed, strain::OsuStrainSkill,
+        },
         OsuDifficultyAttributes, OsuPerformanceAttributes, OsuScoreState,
     },
     util::{
