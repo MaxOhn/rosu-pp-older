@@ -44,6 +44,12 @@ impl<'map> CatchPerformance<'map> {
         }
     }
 
+    pub fn attributes(mut self, attrs: CatchDifficultyAttributes) -> Self {
+        self.map_or_attrs = MapOrAttrs::Attrs(attrs);
+
+        self
+    }
+
     /// Specify mods.
     ///
     /// Accepted types are

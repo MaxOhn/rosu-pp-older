@@ -67,6 +67,12 @@ impl<'map> OsuPerformance<'map> {
         }
     }
 
+    pub fn attributes(mut self, attrs: OsuDifficultyAttributes) -> Self {
+        self.map_or_attrs = MapOrAttrs::Attrs(attrs);
+
+        self
+    }
+
     /// Specify mods.
     ///
     /// Accepted types are
