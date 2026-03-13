@@ -1,10 +1,14 @@
 use rosu_map::util::Pos;
-use rosu_pp::{model::mode::GameMode, Beatmap, Difficulty};
+use rosu_pp::{
+    model::mode::{ConvertError, GameMode, IGameMode},
+    osu::OsuHitResults,
+    Beatmap, Difficulty,
+};
 
 pub use self::{
     attributes::{OsuDifficultyAttributes, OsuPerformanceAttributes},
     performance::OsuPerformance as OsuPP,
-    score_state::{OsuScoreOrigin, OsuScoreState},
+    score_state::OsuScoreState,
 };
 
 use crate::any::difficulty::DifficultyExt;
@@ -17,6 +21,43 @@ mod performance;
 mod score_state;
 
 const PLAYFIELD_BASE_SIZE: Pos = Pos::new(512.0, 384.0);
+
+pub struct Osu25;
+
+impl IGameMode for Osu25 {
+    type DifficultyAttributes = OsuDifficultyAttributes;
+    type Strains = ();
+    type Performance<'map> = OsuPP<'map>;
+    type HitResults = OsuHitResults;
+    type GradualDifficulty = ();
+    type GradualPerformance = ();
+
+    fn difficulty(_: &Difficulty, _: &Beatmap) -> Result<Self::DifficultyAttributes, ConvertError> {
+        unimplemented!()
+    }
+
+    fn strains(_: &Difficulty, _: &Beatmap) -> Result<Self::Strains, ConvertError> {
+        unimplemented!()
+    }
+
+    fn performance(_: &Beatmap) -> Self::Performance<'_> {
+        unimplemented!()
+    }
+
+    fn gradual_difficulty(
+        _: Difficulty,
+        _: &Beatmap,
+    ) -> Result<Self::GradualDifficulty, ConvertError> {
+        unimplemented!()
+    }
+
+    fn gradual_performance(
+        _: Difficulty,
+        _: &Beatmap,
+    ) -> Result<Self::GradualPerformance, ConvertError> {
+        unimplemented!()
+    }
+}
 
 #[derive(Clone, PartialEq)]
 #[must_use]

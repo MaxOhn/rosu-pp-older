@@ -1,3 +1,5 @@
+use rosu_pp::osu::OsuScoreOrigin;
+
 use crate::util::{float_ext::FloatExt, hint::unlikely};
 
 /// Aggregation for a score's current state.
@@ -99,21 +101,4 @@ impl Default for OsuScoreState {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// Type to pass [`OsuScoreState::accuracy`] and specify the origin of a score.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum OsuScoreOrigin {
-    /// For scores set on osu!stable
-    Stable,
-    /// For scores set on osu!lazer with slider accuracy
-    WithSliderAcc {
-        max_large_ticks: u32,
-        max_slider_ends: u32,
-    },
-    /// For scores set on osu!lazer without slider accuracy
-    WithoutSliderAcc {
-        max_large_ticks: u32,
-        max_small_ticks: u32,
-    },
 }

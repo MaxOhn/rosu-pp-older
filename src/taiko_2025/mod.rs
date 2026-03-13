@@ -1,5 +1,9 @@
 use rosu_map::section::general::GameMode;
-use rosu_pp::{Beatmap, Difficulty};
+use rosu_pp::{
+    model::mode::{ConvertError, IGameMode},
+    taiko::TaikoHitResults,
+    Beatmap, Difficulty,
+};
 
 pub use self::{
     attributes::{TaikoDifficultyAttributes, TaikoPerformanceAttributes},
@@ -15,6 +19,43 @@ mod difficulty;
 mod object;
 mod performance;
 mod score_state;
+
+pub struct Taiko25;
+
+impl IGameMode for Taiko25 {
+    type DifficultyAttributes = TaikoDifficultyAttributes;
+    type Strains = ();
+    type Performance<'map> = TaikoPP<'map>;
+    type HitResults = TaikoHitResults;
+    type GradualDifficulty = ();
+    type GradualPerformance = ();
+
+    fn difficulty(_: &Difficulty, _: &Beatmap) -> Result<Self::DifficultyAttributes, ConvertError> {
+        unimplemented!()
+    }
+
+    fn strains(_: &Difficulty, _: &Beatmap) -> Result<Self::Strains, ConvertError> {
+        unimplemented!()
+    }
+
+    fn performance(_: &Beatmap) -> Self::Performance<'_> {
+        unimplemented!()
+    }
+
+    fn gradual_difficulty(
+        _: Difficulty,
+        _: &Beatmap,
+    ) -> Result<Self::GradualDifficulty, ConvertError> {
+        unimplemented!()
+    }
+
+    fn gradual_performance(
+        _: Difficulty,
+        _: &Beatmap,
+    ) -> Result<Self::GradualPerformance, ConvertError> {
+        unimplemented!()
+    }
+}
 
 #[derive(Clone, PartialEq)]
 #[must_use]
