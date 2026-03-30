@@ -1,14 +1,10 @@
-use rosu_pp::{
-    any::{InspectDifficulty, ModsDependent},
-    Difficulty, GameMods,
-};
+use rosu_pp::{any::InspectDifficulty, Difficulty, GameMods};
 
 use crate::util::mods::GameModsExt;
 
 pub mod object;
 pub mod skills;
 
-#[expect(unused)]
 pub(crate) trait DifficultyExt {
     fn get_inspect(&self) -> InspectDifficulty;
 
@@ -17,14 +13,6 @@ pub(crate) trait DifficultyExt {
     fn get_clock_rate(&self) -> f64;
 
     fn get_passed_objects(&self) -> usize;
-
-    fn get_ar(&self) -> Option<ModsDependent>;
-
-    fn get_cs(&self) -> Option<ModsDependent>;
-
-    fn get_hp(&self) -> Option<ModsDependent>;
-
-    fn get_od(&self) -> Option<ModsDependent>;
 
     fn get_hardrock_offsets(&self) -> bool;
 
@@ -52,22 +40,6 @@ impl DifficultyExt for Difficulty {
         self.get_inspect()
             .passed_objects
             .map_or(usize::MAX, |n| n as usize)
-    }
-
-    fn get_ar(&self) -> Option<ModsDependent> {
-        self.get_inspect().ar
-    }
-
-    fn get_cs(&self) -> Option<ModsDependent> {
-        self.get_inspect().cs
-    }
-
-    fn get_hp(&self) -> Option<ModsDependent> {
-        self.get_inspect().hp
-    }
-
-    fn get_od(&self) -> Option<ModsDependent> {
-        self.get_inspect().od
     }
 
     fn get_hardrock_offsets(&self) -> bool {

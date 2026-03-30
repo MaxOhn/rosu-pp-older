@@ -109,17 +109,19 @@ fn calculate_star_rating(aim_rating: f64, speed_rating: f64, flashlight_rating: 
 
 fn calculate_skills(map: &Beatmap, mods: u32) -> (Skills, OsuDifficultyAttributes) {
     let map_attrs = map.attributes().mods(mods).build();
-    let hit_window = map_attrs.hit_windows.od_great;
+    let hit_windows = map_attrs.hit_windows();
+    let adjusted_map_attrs = map_attrs.apply_clock_rate();
+    let hit_window = hit_windows.od_great.unwrap_or(0.0);
 
     let hr = mods.hr();
 
-    let time_preempt = (map_attrs.hit_windows.ar * mods.clock_rate()) as f32 as f64;
-    let scaling_factor = ScalingFactor::new(map_attrs.cs);
+    let time_preempt = (hit_windows.ar.unwrap_or(0.0) * mods.clock_rate()) as f32 as f64;
+    let scaling_factor = ScalingFactor::new(adjusted_map_attrs.cs);
 
     let mut attributes = OsuDifficultyAttributes {
-        ar: map_attrs.ar,
-        hp: map_attrs.hp,
-        od: map_attrs.od,
+        ar: adjusted_map_attrs.ar,
+        hp: f64::from(adjusted_map_attrs.hp),
+        od: adjusted_map_attrs.od,
         ..Default::default()
     };
 
@@ -163,7 +165,7 @@ fn calculate_skills(map: &Beatmap, mods: u32) -> (Skills, OsuDifficultyAttribute
 
     // First object has no predecessor and thus no strain, handle distinctly
     let mut curr_section_end =
-        (prev.time / map_attrs.clock_rate / SECTION_LEN).ceil() * SECTION_LEN;
+        (prev.time / map_attrs.clock_rate() / SECTION_LEN).ceil() * SECTION_LEN;
 
     // Handle second object separately to remove later if-branching
     let h = DifficultyObject::new(
@@ -171,10 +173,10 @@ fn calculate_skills(map: &Beatmap, mods: u32) -> (Skills, OsuDifficultyAttribute
         &mut prev,
         prev_prev.as_ref(),
         &scaling_factor,
-        map_attrs.clock_rate,
+        map_attrs.clock_rate(),
     );
 
-    let base_time = h.base.time / map_attrs.clock_rate;
+    let base_time = h.base.time / map_attrs.clock_rate();
 
     while base_time > curr_section_end {
         skills.start_new_section_from(curr_section_end);
@@ -191,10 +193,10 @@ fn calculate_skills(map: &Beatmap, mods: u32) -> (Skills, OsuDifficultyAttribute
             &mut prev,
             prev_prev.as_ref(),
             &scaling_factor,
-            map_attrs.clock_rate,
+            map_attrs.clock_rate(),
         );
 
-        let base_time = h.base.time / map_attrs.clock_rate;
+        let base_time = h.base.time / map_attrs.clock_rate();
 
         while base_time > curr_section_end {
             skills.save_peak_and_start_new_section(curr_section_end);

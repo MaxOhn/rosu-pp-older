@@ -10,7 +10,7 @@ use convert::convert_objects;
 use difficulty_object::CatchDifficultyObject;
 use movement::Movement;
 use rosu_pp::{
-    model::{beatmap::BeatmapAttributes, mode::GameMode},
+    model::{beatmap::AdjustedBeatmapAttributes, mode::GameMode},
     Beatmap,
 };
 
@@ -169,13 +169,17 @@ impl Default for CatchStars {
 }
 
 pub struct CatchDifficultySetup {
-    map_attrs: BeatmapAttributes,
+    map_attrs: AdjustedBeatmapAttributes,
     attrs: CatchDifficultyAttributes,
 }
 
 impl CatchDifficultySetup {
     pub fn new(difficulty: &CatchStars, map: &Beatmap) -> Self {
-        let map_attrs = map.attributes().mods(difficulty.get_mods()).build();
+        let map_attrs = map
+            .attributes()
+            .mods(difficulty.get_mods())
+            .build()
+            .apply_clock_rate();
 
         let attrs = CatchDifficultyAttributes {
             ar: map_attrs.ar,
@@ -205,7 +209,7 @@ impl DifficultyValues {
         let hr_offsets = difficulty.get_mods().hr();
         let mut count = ObjectCountBuilder::new(take);
 
-        let palpable_objects = convert_objects(map, &mut count, hr_offsets, map_attrs.cs as f32);
+        let palpable_objects = convert_objects(map, &mut count, hr_offsets, map_attrs.cs);
 
         let diff_objects = Self::create_difficulty_objects(
             &map_attrs,
@@ -233,7 +237,7 @@ impl DifficultyValues {
     }
 
     pub fn create_difficulty_objects<'a>(
-        map_attrs: &BeatmapAttributes,
+        map_attrs: &AdjustedBeatmapAttributes,
         clock_rate: f64,
         mut palpable_objects: impl ExactSizeIterator<Item = &'a PalpableObject>,
     ) -> Box<[CatchDifficultyObject]> {
@@ -241,8 +245,8 @@ impl DifficultyValues {
             return Box::default();
         };
 
-        let mut half_catcher_width = Catcher::calculate_catch_width(map_attrs.cs as f32) * 0.5;
-        half_catcher_width *= 1.0 - ((map_attrs.cs as f32 - 5.5).max(0.0) * 0.0625);
+        let mut half_catcher_width = Catcher::calculate_catch_width(map_attrs.cs) * 0.5;
+        half_catcher_width *= 1.0 - ((map_attrs.cs - 5.5).max(0.0) * 0.0625);
         let scaling_factor =
             CatchDifficultyObject::NORMALIZED_HITOBJECT_RADIUS / half_catcher_width;
 

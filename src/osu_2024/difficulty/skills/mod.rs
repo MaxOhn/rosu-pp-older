@@ -1,4 +1,4 @@
-use rosu_pp::model::{beatmap::BeatmapAttributes, mods::GameMods};
+use rosu_pp::model::mods::GameMods;
 
 use crate::{osu_2024::object::OsuObject, util::mods::Mods};
 
@@ -22,10 +22,10 @@ impl OsuSkills {
     pub fn new(
         mods: &GameMods,
         scaling_factor: &ScalingFactor,
-        map_attrs: &BeatmapAttributes,
+        great_hit_window: f64,
         time_preempt: f64,
     ) -> Self {
-        let hit_window = 2.0 * map_attrs.hit_windows.od_great;
+        let hit_window = 2.0 * great_hit_window;
 
         // * Preempt time can go below 450ms. Normally, this is achieved via the DT mod
         // * which uniformly speeds up all animations game wide regardless of AR.

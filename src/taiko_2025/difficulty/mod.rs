@@ -2,10 +2,7 @@ use std::cmp;
 
 use rhythm::preprocessor::RhythmDifficultyPreprocessor;
 use rosu_map::section::general::GameMode;
-use rosu_pp::{
-    model::{beatmap::HitWindows, mode::ConvertError},
-    Beatmap, Difficulty, GameMods,
-};
+use rosu_pp::{model::mode::ConvertError, Beatmap, Difficulty, GameMods};
 use skills::{color::Color, reading::Reading, rhythm::Rhythm, stamina::Stamina};
 
 use crate::{
@@ -47,19 +44,21 @@ pub fn difficulty(
         convert::apply_random_to_beatmap(map.to_mut(), seed);
     }
 
-    let HitWindows {
-        od_great,
-        od_ok,
-        od_meh: _,
-        ar: _,
-    } = map.attributes().difficulty(difficulty).hit_windows();
+    let hit_windows = map
+        .attributes()
+        .difficulty(difficulty)
+        .build()
+        .hit_windows();
+
+    let great_hit_window = hit_windows.od_great.unwrap_or(0.0);
+    let ok_hit_window = hit_windows.od_ok.unwrap_or(0.0);
 
     let DifficultyValues { skills, max_combo } =
-        DifficultyValues::calculate(difficulty, &map, od_great);
+        DifficultyValues::calculate(difficulty, &map, great_hit_window);
 
     let mut attrs = TaikoDifficultyAttributes {
-        great_hit_window: od_great,
-        ok_hit_window: od_ok.unwrap_or(0.0),
+        great_hit_window,
+        ok_hit_window,
         max_combo,
         is_convert: map.is_convert,
         ..Default::default()

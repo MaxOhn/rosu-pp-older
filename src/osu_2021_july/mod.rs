@@ -25,11 +25,12 @@ const NORMALIZED_RADIUS: f32 = 52.0;
 /// This version is considerably more efficient than `all_included` since
 /// processing stack leniency is relatively expensive.
 pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
-    let map_attributes = map.attributes().mods(mods).build();
+    let map_attrs = map.attributes().mods(mods).build();
+    let adjusted_map_attrs = map_attrs.apply_clock_rate();
 
     let mut diff_attributes = OsuDifficultyAttributes {
-        ar: map_attributes.ar,
-        od: map_attributes.od,
+        ar: adjusted_map_attrs.ar,
+        od: adjusted_map_attrs.od,
         ..Default::default()
     };
 
@@ -37,7 +38,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
         return diff_attributes;
     }
 
-    let radius = OBJECT_RADIUS * (1.0 - 0.7 * (map_attributes.cs as f32 - 5.0) / 5.0) / 2.0;
+    let radius = OBJECT_RADIUS * (1.0 - 0.7 * (adjusted_map_attrs.cs - 5.0) / 5.0) / 2.0;
     let mut scaling_factor = NORMALIZED_RADIUS / radius;
 
     if radius < 30.0 {
@@ -69,7 +70,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
             &mut curve_bufs,
         );
 
-        h.time /= map_attributes.clock_rate as f32;
+        h.time /= map_attrs.clock_rate() as f32;
 
         h
     });

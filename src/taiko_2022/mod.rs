@@ -116,8 +116,10 @@ impl TaikoStars {
         let hit_window = map
             .attributes()
             .mods(self.get_mods())
+            .build()
             .hit_windows()
-            .od_great;
+            .od_great
+            .unwrap_or(0.0);
 
         let DifficultyValues { peaks, max_combo } = DifficultyValues::calculate(self, map);
 

@@ -40,7 +40,8 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
         return CatchDifficultyAttributes::default();
     }
 
-    let map_attributes = map.attributes().mods(mods).build();
+    let map_attrs = map.attributes().mods(mods).build();
+    let adjusted_map_attrs = map_attrs.apply_clock_rate();
 
     let attributes = CatchDifficultyAttributes::default();
 
@@ -196,7 +197,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
         .flatten();
 
     // Hyper dash business
-    let base_size = calculate_catch_width(map_attributes.cs as f32) * 0.5;
+    let base_size = calculate_catch_width(adjusted_map_attrs.cs) * 0.5;
     let half_catcher_width = base_size * 0.8;
     let catcher_size = base_size;
 
@@ -205,7 +206,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
 
     // Strain business
     let mut movement = Movement::new();
-    let section_len = SECTION_LENGTH * map_attributes.clock_rate;
+    let section_len = SECTION_LENGTH * map_attrs.clock_rate();
     let mut current_section_end =
         (map.hit_objects[0].start_time / section_len).ceil() * section_len;
 
@@ -218,7 +219,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
     let next = hit_objects.next().unwrap();
     curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, map_attributes.clock_rate);
+    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, map_attrs.clock_rate());
 
     while h.base.time > current_section_end {
         current_section_end += section_len;
@@ -233,7 +234,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
     for next in hit_objects {
         curr.init_hyper_dash(catcher_size, &next, &mut last_direction, &mut last_excess);
 
-        let h = DifficultyObject::new(&curr, &prev, half_catcher_width, map_attributes.clock_rate);
+        let h = DifficultyObject::new(&curr, &prev, half_catcher_width, map_attrs.clock_rate());
 
         while h.base.time > current_section_end {
             movement.save_current_peak();
@@ -248,7 +249,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> CatchDifficultyAttributes {
     }
 
     // Same as in loop but without init_hyper_dash because `curr` is the last element
-    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, map_attributes.clock_rate);
+    let h = DifficultyObject::new(&curr, &prev, half_catcher_width, map_attrs.clock_rate());
 
     while h.base.time > current_section_end {
         movement.save_current_peak();

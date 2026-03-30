@@ -3,10 +3,7 @@ use std::cmp;
 use color::preprocessor::ColorDifficultyPreprocessor;
 use object::{TaikoDifficultyObject, TaikoDifficultyObjects};
 use rosu_map::section::general::GameMode;
-use rosu_pp::{
-    model::{beatmap::HitWindows, mode::ConvertError},
-    Beatmap, Difficulty,
-};
+use rosu_pp::{model::mode::ConvertError, Beatmap, Difficulty};
 
 use crate::{any::difficulty::DifficultyExt, any_2024::difficulty::skills::Skill};
 
@@ -30,18 +27,20 @@ pub fn difficulty(
 ) -> Result<TaikoDifficultyAttributes, ConvertError> {
     let map = map.convert_ref(GameMode::Taiko, &difficulty.get_mods())?;
 
-    let HitWindows {
-        od_great,
-        od_ok,
-        od_meh: _,
-        ar: _,
-    } = map.attributes().difficulty(difficulty).hit_windows();
+    let hit_windows = map
+        .attributes()
+        .difficulty(difficulty)
+        .build()
+        .hit_windows();
+
+    let great_hit_window = hit_windows.od_great.unwrap_or(0.0);
+    let ok_hit_window = hit_windows.od_ok.unwrap_or(0.0);
 
     let DifficultyValues { skills, max_combo } = DifficultyValues::calculate(difficulty, &map);
 
     let mut attrs = TaikoDifficultyAttributes {
-        great_hit_window: od_great,
-        ok_hit_window: od_ok.unwrap_or(0.0),
+        great_hit_window,
+        ok_hit_window,
         max_combo,
         is_convert: map.is_convert,
         ..Default::default()

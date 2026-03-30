@@ -22,7 +22,8 @@ const OD_MAX: f64 = 19.5;
 /// This version is considerably more efficient than `all_included` since
 /// processing stack leniency is relatively expensive.
 pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
-    let map_attributes = map.attributes().mods(mods).build();
+    let map_attrs = map.attributes().mods(mods).build();
+    let adjusted_map_attrs = map_attrs.apply_clock_rate();
 
     let mod_mult = match (mods.hr(), mods.ez()) {
         (true, _) => 1.4,
@@ -31,8 +32,8 @@ pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
     };
 
     let mut diff_attributes = OsuDifficultyAttributes {
-        ar: map_attributes.ar,
-        od: modify_od(map.od as f64, map_attributes.clock_rate, mod_mult),
+        ar: adjusted_map_attrs.ar,
+        od: modify_od(map.od as f64, map_attrs.clock_rate(), mod_mult),
         ..Default::default()
     };
 
@@ -40,8 +41,8 @@ pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
         return diff_attributes;
     }
 
-    let section_len = SECTION_LEN * map_attributes.clock_rate as f32;
-    let radius = OBJECT_RADIUS * (1.0 - 0.7 * (map_attributes.cs as f32 - 5.0) / 5.0) / 2.0;
+    let section_len = SECTION_LEN * map_attrs.clock_rate() as f32;
+    let radius = OBJECT_RADIUS * (1.0 - 0.7 * (adjusted_map_attrs.cs - 5.0) / 5.0) / 2.0;
     let mut scaling_factor = NORMALIZED_RADIUS / radius;
 
     if radius < 30.0 {
@@ -74,12 +75,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
 
     // Handle second object separately to remove later if-branching
     let curr = hit_objects.next().unwrap();
-    let h = DifficultyObject::new(
-        &curr,
-        &prev,
-        map_attributes.clock_rate as f32,
-        scaling_factor,
-    );
+    let h = DifficultyObject::new(&curr, &prev, map_attrs.clock_rate() as f32, scaling_factor);
 
     while h.base.time > current_section_end {
         current_section_end += section_len;
@@ -92,12 +88,7 @@ pub fn stars(map: &Beatmap, mods: u32) -> OsuDifficultyAttributes {
 
     // Handle all other objects
     for curr in hit_objects {
-        let h = DifficultyObject::new(
-            &curr,
-            &prev,
-            map_attributes.clock_rate as f32,
-            scaling_factor,
-        );
+        let h = DifficultyObject::new(&curr, &prev, map_attrs.clock_rate() as f32, scaling_factor);
 
         while h.base.time > current_section_end {
             aim.save_current_peak();

@@ -100,8 +100,10 @@ impl ManiaStars {
         let hit_window = map
             .attributes()
             .mods(difficulty.get_mods())
+            .build()
             .hit_windows()
-            .od_great;
+            .od_great
+            .unwrap_or(0.0);
 
         ManiaDifficultyAttributes {
             stars: values.strain.difficulty_value() * STAR_SCALING_FACTOR,

@@ -13,8 +13,8 @@ pub(crate) struct ScalingFactor {
 }
 
 impl ScalingFactor {
-    pub(crate) fn new(cs: f64) -> Self {
-        let scale = (1.0 - 0.7 * (cs as f32 - 5.0) / 5.0) / 2.0;
+    pub(crate) fn new(cs: f32) -> Self {
+        let scale = (1.0 - 0.7 * (cs - 5.0) / 5.0) / 2.0;
 
         let radius = OBJECT_RADIUS * scale;
         let factor = NORMALIZED_RADIUS / radius;

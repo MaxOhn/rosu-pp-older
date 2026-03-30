@@ -81,16 +81,18 @@ impl OsuDifficultySetup {
     pub fn new(difficulty: &Difficulty, map: &Beatmap) -> Self {
         let clock_rate = difficulty.get_clock_rate();
         let map_attrs = map.attributes().difficulty(difficulty).build();
-        let scaling_factor = ScalingFactor::new(map_attrs.cs);
+        let hit_windows = map_attrs.hit_windows();
+        let adjusted_map_attrs = map_attrs.apply_clock_rate();
+        let scaling_factor = ScalingFactor::new(adjusted_map_attrs.cs);
 
         let attrs = OsuDifficultyAttributes {
-            ar: map_attrs.ar,
-            hp: map_attrs.hp,
-            od: map_attrs.od,
+            ar: adjusted_map_attrs.ar,
+            hp: f64::from(adjusted_map_attrs.hp),
+            od: adjusted_map_attrs.od,
             ..Default::default()
         };
 
-        let time_preempt = f64::from((map_attrs.hit_windows.ar * clock_rate) as f32);
+        let time_preempt = f64::from((hit_windows.ar.unwrap_or(0.0) * clock_rate) as f32);
 
         Self {
             scaling_factor,
@@ -132,7 +134,9 @@ impl DifficultyValues {
         let diff_objects =
             Self::create_difficulty_objects(difficulty, &scaling_factor, osu_object_iter);
 
-        let mut skills = OsuSkills::new(&mods, &scaling_factor, &map_attrs, time_preempt);
+        let great_hit_window = map_attrs.hit_windows().od_great.unwrap_or(0.0);
+
+        let mut skills = OsuSkills::new(&mods, &scaling_factor, great_hit_window, time_preempt);
 
         {
             let mut aim = Skill::new(&mut skills.aim, &diff_objects);
